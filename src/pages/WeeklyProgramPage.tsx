@@ -22,6 +22,15 @@ interface ProgramDraft {
 
 const EMPTY_DRAFT: ProgramDraft = { section: '', program_type_id: '', title: '', duration_minutes: '' }
 
+const SECTION_PRESETS = [
+  '開会',
+  '神の言葉の宝',
+  '野外奉仕に励む',
+  '伝道を楽しもう',
+  'クリスチャンとして生活する',
+  '閉会',
+]
+
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr)
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
@@ -336,6 +345,7 @@ export function WeeklyProgramPage() {
                     <tr key={program.id}>
                       <td>
                         <input
+                          list="section-options"
                           value={draft.section}
                           onChange={(e) => setDraft((d) => ({ ...d, section: e.target.value }))}
                         />
@@ -481,6 +491,7 @@ export function WeeklyProgramPage() {
               <tr>
                 <td>
                   <input
+                    list="section-options"
                     placeholder="区分"
                     value={newRow.section}
                     onChange={(e) => setNewRow((d) => ({ ...d, section: e.target.value }))}
@@ -529,6 +540,12 @@ export function WeeklyProgramPage() {
           この日のプログラムは登録されていません。「プログラムを編集」から追加できます。
         </p>
       )}
+
+      <datalist id="section-options">
+        {SECTION_PRESETS.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
     </div>
   )
 }
