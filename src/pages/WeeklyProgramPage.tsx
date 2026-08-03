@@ -4,7 +4,6 @@ import { useAppData } from '../context/AppDataContext'
 import { getEligibleCandidates } from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
-import { useAuth } from '../context/AuthContext'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
 type AssignmentWithRelations = Assignment & {
@@ -65,7 +64,6 @@ export function WeeklyProgramPage() {
     error: appDataError,
     refetchHistory,
   } = useAppData()
-  const { signOut } = useAuth()
 
   const [availableDates, setAvailableDates] = useState<string[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -370,12 +368,7 @@ export function WeeklyProgramPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1>週ごとのプログラム</h1>
-        <button type="button" className="link-button" onClick={signOut}>
-          ログアウト
-        </button>
-      </header>
+      <h1>週ごとのプログラム</h1>
 
       <div className="date-nav">
         <button type="button" onClick={goPrev} disabled={!availableDates.some((d) => selectedDate && d < selectedDate)}>
