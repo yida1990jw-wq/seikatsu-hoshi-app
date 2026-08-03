@@ -10,6 +10,7 @@ interface AssignmentCellProps {
   onAssign: (memberId: string | null) => void
   saving?: boolean
   placeholder?: string
+  isDuplicateToday?: boolean
 }
 
 export function AssignmentCell({
@@ -18,6 +19,7 @@ export function AssignmentCell({
   onAssign,
   saving,
   placeholder = '未割当',
+  isDuplicateToday,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
 
@@ -41,7 +43,11 @@ export function AssignmentCell({
       onClick={() => setOpen(true)}
       disabled={saving}
     >
-      {saving ? '保存中...' : currentMember ? memberDisplayName(currentMember) : placeholder}
+      {saving
+        ? '保存中...'
+        : currentMember
+          ? `${currentMember && isDuplicateToday ? '⚠ ' : ''}${memberDisplayName(currentMember)}`
+          : placeholder}
     </button>
   )
 }

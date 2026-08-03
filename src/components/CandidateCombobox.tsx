@@ -60,9 +60,16 @@ export function CandidateCombobox({ candidates, onSelect, onClose, allowClear = 
         {filtered.length === 0 && <li className="candidate-empty">該当する候補者がいません</li>}
         {filtered.map((c) => (
           <li key={c.member.id}>
-            <button type="button" onClick={() => onSelect(c.member.id)}>
+            <button
+              type="button"
+              className={c.isDuplicateToday ? 'candidate-duplicate' : ''}
+              onClick={() => onSelect(c.member.id)}
+            >
               <span className="candidate-name">{memberDisplayName(c.member)}</span>
-              <span className="candidate-meta">{formatLastAssigned(c.lastAssignedDate)}</span>
+              <span className="candidate-meta">
+                {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
+                {formatLastAssigned(c.lastAssignedDate)}
+              </span>
             </button>
           </li>
         ))}

@@ -5,6 +5,8 @@ export interface AssignmentHistoryRow {
   partner_id: string | null
   program_date: string | null
   program_type_id: string | null
+  /** ペアが主担当と異なる資格ルール(例: 会衆の聖書研究の朗読者)で入る場合の種別id */
+  partner_program_type_id: string | null
 }
 
 /** memberId -> (programTypeId -> 直近の担当日) */
@@ -13,20 +15,23 @@ export type LastAssignedMap = Map<string, Map<string, string>>
 export function buildLastAssignedMap(rows: AssignmentHistoryRow[]): LastAssignedMap {
   const map: LastAssignedMap = new Map()
 
-  for (const row of rows) {
-    if (!row.program_date || !row.program_type_id) continue
-    for (const memberId of [row.member_id, row.partner_id]) {
-      if (!memberId) continue
-      let typeMap = map.get(memberId)
-      if (!typeMap) {
-        typeMap = new Map()
-        map.set(memberId, typeMap)
-      }
-      const existing = typeMap.get(row.program_type_id)
-      if (!existing || row.program_date > existing) {
-        typeMap.set(row.program_type_id, row.program_date)
-      }
+  function record(memberId: string | null, typeId: string | null, date: string) {
+    if (!memberId || !typeId) return
+    let typeMap = map.get(memberId)
+    if (!typeMap) {
+      typeMap = new Map()
+      map.set(memberId, typeMap)
     }
+    const existing = typeMap.get(typeId)
+    if (!existing || date > existing) {
+      typeMap.set(typeId, date)
+    }
+  }
+
+  for (const row of rows) {
+    if (!row.program_date) continue
+    record(row.member_id, row.program_type_id, row.program_date)
+    record(row.partner_id, row.partner_program_type_id ?? row.program_type_id, row.program_date)
   }
 
   return map
@@ -35,27 +40,29 @@ export function buildLastAssignedMap(rows: AssignmentHistoryRow[]): LastAssigned
 export interface Candidate {
   member: Member
   lastAssignedDate: string | null
+  /** 同じ日に他のプログラムへ割り当て済み(選択は可能、注意喚起のみ) */
+  isDuplicateToday: boolean
 }
 
 interface GetCandidatesParams {
   members: Member[]
   programType: ProgramType
   lastAssignedMap: LastAssignedMap
-  /** 同じ週内で既に他のプログラムに割り当て済みのメンバー(二重登板を避ける) */
-  excludeMemberIds?: Set<string>
+  /** 同じ日に既に他のプログラムへ割り当て済みのメンバー。除外はせず、注意喚起の表示にのみ使う */
+  duplicateMemberIds?: Set<string>
   /** ペア選定時、主担当と同性に絞る場合に指定 */
   requiredGender?: Member['gender']
 }
 
 /**
- * program_type の条件(立場・性別・特別承認)を満たし、かつ status=現役 のメンバーから
- * 同週の重複を除外した候補を返す。直近このプログラム種別を担当していない順(未実施を最優先)に並べる。
+ * program_type の条件(立場・性別・特別承認)を満たし、かつ status=現役 のメンバーを候補として返す。
+ * 直近このプログラム種別を担当していない順(未実施を最優先)に並べ、同日の重複がある候補は末尾に回す。
  */
 export function getEligibleCandidates({
   members,
   programType,
   lastAssignedMap,
-  excludeMemberIds,
+  duplicateMemberIds,
   requiredGender,
 }: GetCandidatesParams): Candidate[] {
   const requiredPositions = programType.required_position ?? []
@@ -63,7 +70,6 @@ export function getEligibleCandidates({
 
   const candidates = members
     .filter((m) => m.status === '現役')
-    .filter((m) => !excludeMemberIds?.has(m.id))
     .filter((m) => requiredPositions.length === 0 || requiredPositions.includes(m.position))
     .filter((m) => !programType.required_gender || m.gender === programType.required_gender)
     .filter((m) => !requiredGender || m.gender === requiredGender)
@@ -74,9 +80,11 @@ export function getEligibleCandidates({
     .map((member) => ({
       member,
       lastAssignedDate: lastAssignedMap.get(member.id)?.get(programType.id) ?? null,
+      isDuplicateToday: duplicateMemberIds?.has(member.id) ?? false,
     }))
 
   candidates.sort((a, b) => {
+    if (a.isDuplicateToday !== b.isDuplicateToday) return a.isDuplicateToday ? 1 : -1
     if (a.lastAssignedDate === b.lastAssignedDate) {
       return memberSortKey(a.member).localeCompare(memberSortKey(b.member), 'ja')
     }

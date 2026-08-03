@@ -7,7 +7,7 @@ export type MemberStatus = (typeof MEMBER_STATUSES)[number]
 export const GENDERS = ['男性', '女性'] as const
 export type Gender = (typeof GENDERS)[number]
 
-export const QUALIFICATIONS = ['祈り', '聖書研究朗読者', '全体司会', '朗読', '話'] as const
+export const QUALIFICATIONS = ['祈り', '聖書研究朗読者', '聖書研究司会', '全体司会', '朗読', '話'] as const
 export type Qualification = (typeof QUALIFICATIONS)[number]
 
 export interface Member {
@@ -37,6 +37,7 @@ export interface ProgramType {
   needs_partner: boolean | null
   partner_same_gender: boolean | null
   required_qualification: Qualification | null
+  partner_program_type_id: string | null
 }
 
 export interface Program {

@@ -75,6 +75,7 @@ export function WeeklyProgramPage() {
   const [savingProgramId, setSavingProgramId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const [savingChairman, setSavingChairman] = useState(false)
   const [manageMode, setManageMode] = useState(false)
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProgramDraft>(EMPTY_DRAFT)
@@ -150,7 +151,9 @@ export function WeeklyProgramPage() {
     if (next) setSelectedDate(next)
   }
 
-  const excludeSetFor = useMemo(() => {
+  const programTypesById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt])), [programTypes])
+
+  const duplicateSetFor = useMemo(() => {
     return (programId: string, slot: 'member_id' | 'partner_id') => {
       const set = new Set<string>()
       for (const a of assignments) {
@@ -241,12 +244,25 @@ export function WeeklyProgramPage() {
     setError(null)
     try {
       const maxOrder = programs.reduce((max, p) => Math.max(max, p.order_no ?? 0), 0)
-      const { error } = await supabase.from('programs').insert({
-        date: selectedDate,
-        order_no: maxOrder + 1,
-        ...draftToPatch(newRow),
-      })
+      const { data: created, error } = await supabase
+        .from('programs')
+        .insert({
+          date: selectedDate,
+          order_no: maxOrder + 1,
+          ...draftToPatch(newRow),
+        })
+        .select()
+        .single()
       if (error) throw error
+
+      const defaultVenue = venues.find((v) => v.name === '本会場') ?? venues[0]
+      if (created && defaultVenue) {
+        const { error: assignmentError } = await supabase
+          .from('assignments')
+          .insert({ program_id: created.id, venue_id: defaultVenue.id })
+        if (assignmentError) throw assignmentError
+      }
+
       setNewRow(EMPTY_DRAFT)
       await loadWeek(selectedDate)
       await loadAvailableDates()
@@ -304,6 +320,29 @@ export function WeeklyProgramPage() {
 
   const sortedPrograms = [...programs].sort((a, b) => (a.order_no ?? 0) - (b.order_no ?? 0))
 
+  const openingType = programTypes.find((pt) => pt.name === '開会の言葉')
+  const closingType = programTypes.find((pt) => pt.name === '閉会の言葉')
+  const openingProgram = openingType ? programs.find((p) => p.program_type_id === openingType.id) : undefined
+  const closingProgram = closingType ? programs.find((p) => p.program_type_id === closingType.id) : undefined
+  const chairman = openingProgram
+    ? assignments.find((a) => a.program_id === openingProgram.id)?.member
+    : undefined
+  const chairmanCandidates = openingType
+    ? getEligibleCandidates({
+        members,
+        programType: openingType,
+        lastAssignedMap,
+        duplicateMemberIds: openingProgram ? duplicateSetFor(openingProgram.id, 'member_id') : new Set(),
+      })
+    : []
+
+  async function handleAssignChairman(memberId: string | null) {
+    setSavingChairman(true)
+    if (openingProgram) await upsertAssignment(openingProgram.id, { member_id: memberId })
+    if (closingProgram) await upsertAssignment(closingProgram.id, { member_id: memberId })
+    setSavingChairman(false)
+  }
+
   function findSong(id: string | null): Song | undefined {
     return id ? songs.find((s) => s.id === id) : undefined
   }
@@ -353,6 +392,20 @@ export function WeeklyProgramPage() {
         <button type="button" onClick={goNext} disabled={!availableDates.some((d) => selectedDate && d > selectedDate)}>
           次週 →
         </button>
+
+        {!manageMode && (openingProgram || closingProgram) && (
+          <div className="chairman-field">
+            <span className="chairman-label">司会者:</span>
+            <AssignmentCell
+              currentMember={chairman}
+              candidates={chairmanCandidates}
+              saving={savingChairman}
+              placeholder="未選択"
+              onAssign={handleAssignChairman}
+            />
+          </div>
+        )}
+
         <button type="button" className="manage-toggle" onClick={() => setManageMode((m) => !m)}>
           {manageMode ? '割当画面に戻る' : 'プログラムを編集'}
         </button>
@@ -499,24 +552,34 @@ export function WeeklyProgramPage() {
                 )
               }
 
+              const memberDuplicateSet = programType ? duplicateSetFor(program.id, 'member_id') : new Set<string>()
+              const partnerDuplicateSet = programType?.needs_partner
+                ? duplicateSetFor(program.id, 'partner_id')
+                : new Set<string>()
+
               const memberCandidates = programType
                 ? getEligibleCandidates({
                     members,
                     programType,
                     lastAssignedMap,
-                    excludeMemberIds: excludeSetFor(program.id, 'member_id'),
+                    duplicateMemberIds: memberDuplicateSet,
                   })
                 : []
 
-              const partnerCandidates = programType?.needs_partner
-                ? getEligibleCandidates({
-                    members,
-                    programType,
-                    lastAssignedMap,
-                    excludeMemberIds: excludeSetFor(program.id, 'partner_id'),
-                    requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
-                  })
-                : []
+              const partnerProgramType = programType?.partner_program_type_id
+                ? (programTypesById.get(programType.partner_program_type_id) ?? programType)
+                : programType
+
+              const partnerCandidates =
+                programType?.needs_partner && partnerProgramType
+                  ? getEligibleCandidates({
+                      members,
+                      programType: partnerProgramType,
+                      lastAssignedMap,
+                      duplicateMemberIds: partnerDuplicateSet,
+                      requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
+                    })
+                  : []
 
               return (
                 <tr key={program.id}>
@@ -533,6 +596,7 @@ export function WeeklyProgramPage() {
                         currentMember={assignment?.member}
                         candidates={memberCandidates}
                         saving={saving}
+                        isDuplicateToday={!!assignment?.member && memberDuplicateSet.has(assignment.member.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { member_id: memberId })}
                       />
                     ) : (
@@ -545,6 +609,7 @@ export function WeeklyProgramPage() {
                         currentMember={assignment?.partner}
                         candidates={partnerCandidates}
                         saving={saving}
+                        isDuplicateToday={!!assignment?.partner && partnerDuplicateSet.has(assignment.partner.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
                     ) : (

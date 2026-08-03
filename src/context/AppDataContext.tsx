@@ -31,17 +31,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const fetchHistory = useCallback(async () => {
     const { data, error } = await supabase
       .from('assignments')
-      .select('member_id, partner_id, programs(date, program_type_id)')
+      .select('member_id, partner_id, programs(date, program_type_id, program_types(partner_program_type_id))')
 
     if (error) throw error
 
     const rows: AssignmentHistoryRow[] = (data ?? []).map((row) => {
       const program = Array.isArray(row.programs) ? row.programs[0] : row.programs
+      const programType = program
+        ? Array.isArray(program.program_types)
+          ? program.program_types[0]
+          : program.program_types
+        : null
       return {
         member_id: row.member_id,
         partner_id: row.partner_id,
         program_date: program?.date ?? null,
         program_type_id: program?.program_type_id ?? null,
+        partner_program_type_id: programType?.partner_program_type_id ?? null,
       }
     })
 

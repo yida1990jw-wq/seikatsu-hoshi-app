@@ -159,8 +159,26 @@ input {
 .date-nav {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
+}
+
+.chairman-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chairman-label {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.chairman-field .assignment-value,
+.chairman-field .candidate-combobox {
+  min-width: 160px;
 }
 
 .date-nav select {
@@ -398,4 +416,19 @@ input {
   font-size: 13px;
   color: var(--text);
   opacity: 0.7;
+}
+
+.candidate-duplicate {
+  opacity: 0.7;
+}
+
+.candidate-warning {
+  display: block;
+  color: #c07a1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .candidate-warning {
+    color: #e0a94a;
+  }
 }
