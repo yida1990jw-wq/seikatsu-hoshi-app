@@ -47,6 +47,25 @@ export interface Program {
   title: string | null
   order_no: number | null
   duration_minutes: number | null
+  material: string | null
+  content: string | null
+  song_id: string | null
+  teaching_point_id: string | null
+}
+
+export interface Song {
+  id: string
+  number: number
+  title: string
+  scripture: string | null
+}
+
+export interface TeachingPoint {
+  id: string
+  code: string
+  title: string
+  page: string | null
+  order_no: number
 }
 
 export interface Assignment {

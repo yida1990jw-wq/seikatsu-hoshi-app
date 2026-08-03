@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { getEligibleCandidates } from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
-import type { Assignment, Member, Program, ProgramType, Venue } from '../types/domain'
+import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
 import { useAuth } from '../context/AuthContext'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
@@ -18,9 +18,22 @@ interface ProgramDraft {
   program_type_id: string
   title: string
   duration_minutes: string
+  material: string
+  content: string
+  song_id: string
+  teaching_point_id: string
 }
 
-const EMPTY_DRAFT: ProgramDraft = { section: '', program_type_id: '', title: '', duration_minutes: '' }
+const EMPTY_DRAFT: ProgramDraft = {
+  section: '',
+  program_type_id: '',
+  title: '',
+  duration_minutes: '',
+  material: '',
+  content: '',
+  song_id: '',
+  teaching_point_id: '',
+}
 
 const SECTION_PRESETS = [
   '開会',
@@ -45,6 +58,8 @@ export function WeeklyProgramPage() {
     members,
     venues,
     programTypes,
+    songs,
+    teachingPoints,
     lastAssignedMap,
     loading: appDataLoading,
     error: appDataError,
@@ -180,6 +195,10 @@ export function WeeklyProgramPage() {
       program_type_id: d.program_type_id || null,
       title: d.title.trim() || null,
       duration_minutes: d.duration_minutes ? Number(d.duration_minutes) : null,
+      material: d.material.trim() || null,
+      content: d.content.trim() || null,
+      song_id: d.song_id || null,
+      teaching_point_id: d.teaching_point_id || null,
     }
   }
 
@@ -190,6 +209,10 @@ export function WeeklyProgramPage() {
       program_type_id: program.program_type_id ?? '',
       title: program.title ?? '',
       duration_minutes: program.duration_minutes?.toString() ?? '',
+      material: program.material ?? '',
+      content: program.content ?? '',
+      song_id: program.song_id ?? '',
+      teaching_point_id: program.teaching_point_id ?? '',
     })
   }
 
@@ -281,6 +304,31 @@ export function WeeklyProgramPage() {
 
   const sortedPrograms = [...programs].sort((a, b) => (a.order_no ?? 0) - (b.order_no ?? 0))
 
+  function findSong(id: string | null): Song | undefined {
+    return id ? songs.find((s) => s.id === id) : undefined
+  }
+
+  function findTeachingPoint(id: string | null): TeachingPoint | undefined {
+    return id ? teachingPoints.find((t) => t.id === id) : undefined
+  }
+
+  function renderProgramDetails(program: ProgramWithType) {
+    const song = findSong(program.song_id)
+    const teachingPoint = findTeachingPoint(program.teaching_point_id)
+    return (
+      <>
+        {program.material && <div className="program-detail">資料: {program.material}</div>}
+        {program.content && <div className="program-detail">{program.content}</div>}
+        {song && (
+          <div className="program-detail">
+            {song.number}番 {song.title}
+          </div>
+        )}
+        {teachingPoint && <div className="program-detail">教励課題: {teachingPoint.title}</div>}
+      </>
+    )
+  }
+
   return (
     <div className="page">
       <header className="page-header">
@@ -367,6 +415,38 @@ export function WeeklyProgramPage() {
                           value={draft.title}
                           onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                         />
+                        <input
+                          placeholder="資料(任意)"
+                          value={draft.material}
+                          onChange={(e) => setDraft((d) => ({ ...d, material: e.target.value }))}
+                        />
+                        <input
+                          placeholder="内容(任意)"
+                          value={draft.content}
+                          onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+                        />
+                        <select
+                          value={draft.song_id}
+                          onChange={(e) => setDraft((d) => ({ ...d, song_id: e.target.value }))}
+                        >
+                          <option value="">(歌なし)</option>
+                          {songs.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.number}番 {s.title}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={draft.teaching_point_id}
+                          onChange={(e) => setDraft((d) => ({ ...d, teaching_point_id: e.target.value }))}
+                        >
+                          <option value="">(教励課題なし)</option>
+                          {teachingPoints.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.code} {t.title}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         <input
@@ -394,6 +474,7 @@ export function WeeklyProgramPage() {
                     <td>
                       <div className="program-title">{program.title ?? programType?.name}</div>
                       {programType && <div className="program-type-name">{programType.name}</div>}
+                      {renderProgramDetails(program)}
                     </td>
                     <td>{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
                     <td className="row-actions">
@@ -443,6 +524,7 @@ export function WeeklyProgramPage() {
                   <td>
                     <div className="program-title">{program.title ?? programType?.name}</div>
                     {programType && <div className="program-type-name">{programType.name}</div>}
+                    {renderProgramDetails(program)}
                   </td>
                   <td>{program.duration_minutes ? `${program.duration_minutes}分` : ''}</td>
                   <td>
@@ -514,6 +596,38 @@ export function WeeklyProgramPage() {
                     value={newRow.title}
                     onChange={(e) => setNewRow((d) => ({ ...d, title: e.target.value }))}
                   />
+                  <input
+                    placeholder="資料(任意)"
+                    value={newRow.material}
+                    onChange={(e) => setNewRow((d) => ({ ...d, material: e.target.value }))}
+                  />
+                  <input
+                    placeholder="内容(任意)"
+                    value={newRow.content}
+                    onChange={(e) => setNewRow((d) => ({ ...d, content: e.target.value }))}
+                  />
+                  <select
+                    value={newRow.song_id}
+                    onChange={(e) => setNewRow((d) => ({ ...d, song_id: e.target.value }))}
+                  >
+                    <option value="">(歌なし)</option>
+                    {songs.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.number}番 {s.title}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={newRow.teaching_point_id}
+                    onChange={(e) => setNewRow((d) => ({ ...d, teaching_point_id: e.target.value }))}
+                  >
+                    <option value="">(教励課題なし)</option>
+                    {teachingPoints.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.code} {t.title}
+                      </option>
+                    ))}
+                  </select>
                 </td>
                 <td>
                   <input
