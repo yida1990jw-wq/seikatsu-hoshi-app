@@ -920,11 +920,12 @@ input {
   font-weight: 700;
 }
 
+/* タイトル | 歌番号 | 持ち時間 | 終了時間 | 資料 | 担当者 | ペア */
 .schedule-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 26px 26px 48px 92px 92px 92px;
+  align-items: start;
+  column-gap: 6px;
   padding: 1.5px 8px;
   border-bottom: 1px solid #eee;
   border-left: 4px solid transparent;
@@ -932,31 +933,33 @@ input {
   line-height: 1.35;
 }
 
-.schedule-row-left {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex: 1;
+.schedule-row > span {
   min-width: 0;
-}
-
-.schedule-row-title {
-  min-width: 0;
-}
-
-.schedule-row-time {
-  white-space: nowrap;
-  color: #555;
-  flex-shrink: 0;
-}
-
-.schedule-row-presenter {
-  flex: 0 0 140px;
-  width: 140px;
-  text-align: right;
-  color: #222;
-  white-space: normal;
   overflow-wrap: break-word;
+}
+
+.schedule-col-title {
+  white-space: normal;
+}
+
+.schedule-col-song,
+.schedule-col-duration {
+  color: #555;
+  white-space: nowrap;
+}
+
+.schedule-col-endtime {
+  color: #555;
+  white-space: nowrap;
+}
+
+.schedule-col-material {
+  color: #555;
+}
+
+.schedule-col-presenter,
+.schedule-col-partner {
+  color: #222;
 }
 
 @media print {

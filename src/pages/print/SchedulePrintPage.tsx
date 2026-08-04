@@ -21,7 +21,7 @@ function formatMonthLabel(monthStr: string | undefined): string {
 
 export function SchedulePrintPage() {
   const { from, to, month } = useParams<{ from: string; to: string; month: string }>()
-  const { settings, programTypes } = useAppData()
+  const { settings, programTypes, songs } = useAppData()
   const [data, setData] = useState<RangeData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,27 +64,25 @@ export function SchedulePrintPage() {
               </div>
               {visibleItems.map(({ item, endMin }) => {
                 const assignment = data.assignmentByProgramId.get(item.id)
+                const song = item.song_id ? songs.find((s) => s.id === item.song_id) : undefined
                 return (
                   <div
                     className="schedule-row"
                     key={item.id}
                     style={{ borderLeftColor: sectionColor(item.section) }}
                   >
-                    <span className="schedule-row-left">
-                      <span className="schedule-row-title">
-                        {item.title ?? item.program_types?.name}
-                        {item.material ? `(${item.material})` : ''}
-                      </span>
-                      <span className="schedule-row-time">
-                        {item.duration_minutes ? `${item.duration_minutes}分` : ''}
-                        {' (〜'}
-                        {formatClockTime(endMin)}
-                        {')'}
-                      </span>
+                    <span className="schedule-col-title">{item.title ?? item.program_types?.name}</span>
+                    <span className="schedule-col-song">{song ? `${song.number}番` : ''}</span>
+                    <span className="schedule-col-duration">
+                      {item.duration_minutes ? `${item.duration_minutes}分` : ''}
                     </span>
-                    <span className="schedule-row-presenter">
+                    <span className="schedule-col-endtime">{`(〜${formatClockTime(endMin)})`}</span>
+                    <span className="schedule-col-material">{item.material ?? ''}</span>
+                    <span className="schedule-col-presenter">
                       {assignment?.member ? memberDisplayName(assignment.member) : ''}
-                      {assignment?.partner ? ` (${memberDisplayName(assignment.partner)})` : ''}
+                    </span>
+                    <span className="schedule-col-partner">
+                      {assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}
                     </span>
                   </div>
                 )
