@@ -60,7 +60,7 @@ export function CounselorPrintPage() {
                   </div>
                   <div className="counselor-item-point">
                     {teachingPoint
-                      ? `${teachingPoint.code} ${teachingPoint.title}${teachingPoint.page ? `(${teachingPoint.page})` : ''}`
+                      ? `${teachingPoint.code} ${teachingPoint.title}${teachingPoint.page ?? ''}`
                       : ''}
                   </div>
                   <div className="counselor-item-row">
