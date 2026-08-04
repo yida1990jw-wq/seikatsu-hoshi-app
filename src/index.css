@@ -731,7 +731,10 @@ input {
 }
 
 .slip-sheet {
-  max-width: 100mm;
+  width: 105mm;
+  height: 148mm;
+  box-sizing: border-box;
+  padding: 6mm;
   margin: 0;
   border: 1px solid #999;
   border-radius: 4px;
@@ -742,7 +745,7 @@ input {
   text-align: center;
   background: #eee;
   padding: 8px;
-  margin: -12mm -12mm 12px;
+  margin: -6mm -6mm 12px;
 }
 
 .slip-fields {
