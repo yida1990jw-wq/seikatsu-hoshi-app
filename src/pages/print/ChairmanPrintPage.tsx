@@ -33,7 +33,6 @@ function groupBySection(rows: ItemRow[]): { section: string | null; rows: ItemRo
   return groups
 }
 
-
 export function ChairmanPrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
   const { settings, songs } = useAppData()
@@ -88,28 +87,26 @@ export function ChairmanPrintPage() {
                     ? `${song.number}番の${item.title ?? item.program_types?.name}`
                     : (item.title ?? item.program_types?.name)
                   const songDetail = song ? `${song.title}${song.scripture ?? ''}` : null
-                  const detail = [item.material, item.content].filter(Boolean).join(' ')
+                  const material = item.material || songDetail
                   const isStripe = rowIndex % 2 === 1
                   rowIndex += 1
                   return (
                     <div className={`chair-item ${isStripe ? 'chair-item-stripe' : ''}`} key={item.id}>
-                      <div className="chair-item-row">
-                        <span className="chair-item-title">{title}</span>
-                        <span className="chair-item-time">
-                          {item.duration_minutes ? `${item.duration_minutes}分` : ''}
-                          {' (〜'}
-                          {formatClockTime(endMin)}
-                          {')'}
-                        </span>
-                      </div>
-                      {songDetail && <div className="chair-item-detail">{songDetail}</div>}
-                      {detail && <div className="chair-item-detail">{detail}</div>}
-                      {assignment?.member && (
-                        <div className="chair-item-presenter">{memberDisplayName(assignment.member)}</div>
-                      )}
-                      {assignment?.partner && (
-                        <div className="chair-item-presenter">({memberDisplayName(assignment.partner)})</div>
-                      )}
+                      <span className="chair-item-title">{title}</span>
+                      <span className="chair-item-time">
+                        {item.duration_minutes ? `${item.duration_minutes}分` : ''}
+                        {' (〜'}
+                        {formatClockTime(endMin)}
+                        {')'}
+                      </span>
+                      <span className="chair-item-presenter">
+                        {assignment?.member ? memberDisplayName(assignment.member) : ''}
+                      </span>
+                      <span className="chair-item-material">{material}</span>
+                      <span className="chair-item-partner">
+                        {assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}
+                      </span>
+                      {item.content && <span className="chair-item-content">{item.content}</span>}
                     </div>
                   )
                 })}
