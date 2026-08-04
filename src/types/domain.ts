@@ -69,6 +69,11 @@ export interface TeachingPoint {
   order_no: number
 }
 
+export interface Setting {
+  key: string
+  value: string
+}
+
 export interface Assignment {
   id: string
   program_id: string | null

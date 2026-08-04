@@ -3,12 +3,17 @@ import { supabase } from '../lib/supabaseClient'
 import { buildLastAssignedMap, type AssignmentHistoryRow, type LastAssignedMap } from '../lib/candidates'
 import type { Member, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
 
+const DEFAULT_SETTINGS: Record<string, string> = {
+  meeting_start_time: '19:00',
+}
+
 interface AppDataContextValue {
   members: Member[]
   venues: Venue[]
   programTypes: ProgramType[]
   songs: Song[]
   teachingPoints: TeachingPoint[]
+  settings: Record<string, string>
   lastAssignedMap: LastAssignedMap
   loading: boolean
   error: string | null
@@ -24,6 +29,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [programTypes, setProgramTypes] = useState<ProgramType[]>([])
   const [songs, setSongs] = useState<Song[]>([])
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
+  const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS)
   const [lastAssignedMap, setLastAssignedMap] = useState<LastAssignedMap>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,12 +64,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      const [membersRes, venuesRes, programTypesRes, songsRes, teachingPointsRes] = await Promise.all([
+      const [membersRes, venuesRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
         supabase.from('members').select('*').order('last_name_kana', { ascending: true }),
         supabase.from('venues').select('*').order('name', { ascending: true }),
         supabase.from('program_types').select('*'),
         supabase.from('songs').select('*').order('number', { ascending: true }),
         supabase.from('teaching_points').select('*').order('order_no', { ascending: true }),
+        // settingsテーブルは後から追加されたため、未作成環境でも他のデータ取得を止めない
+        supabase.from('settings').select('*'),
       ])
 
       if (membersRes.error) throw membersRes.error
@@ -77,6 +85,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setProgramTypes(programTypesRes.data ?? [])
       setSongs(songsRes.data ?? [])
       setTeachingPoints(teachingPointsRes.data ?? [])
+      if (!settingsRes.error) {
+        setSettings({
+          ...DEFAULT_SETTINGS,
+          ...Object.fromEntries((settingsRes.data ?? []).map((s) => [s.key, s.value])),
+        })
+      }
 
       await fetchHistory()
     } catch (e) {
@@ -98,6 +112,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         programTypes,
         songs,
         teachingPoints,
+        settings,
         lastAssignedMap,
         loading,
         error,

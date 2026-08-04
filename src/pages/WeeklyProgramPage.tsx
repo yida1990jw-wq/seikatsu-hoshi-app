@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { getEligibleCandidates } from '../lib/candidates'
@@ -422,6 +423,7 @@ export function WeeklyProgramPage() {
                   <th>担当者</th>
                   <th>ペア</th>
                   <th>会場</th>
+                  <th>スリップ</th>
                 </>
               )}
             </tr>
@@ -622,6 +624,13 @@ export function WeeklyProgramPage() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td>
+                    {assignment?.id && (
+                      <Link to={`/print/slip/${assignment.id}`} target="_blank" rel="noopener noreferrer">
+                        印刷
+                      </Link>
+                    )}
                   </td>
                 </tr>
               )

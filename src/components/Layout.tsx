@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { to: '/program-types', label: 'プログラム種別' },
   { to: '/songs', label: '歌' },
   { to: '/teaching-points', label: '教励課題' },
+  { to: '/reports', label: '帳票印刷' },
+  { to: '/settings', label: '設定' },
 ]
 
 export function Layout({ children }: { children: ReactNode }) {

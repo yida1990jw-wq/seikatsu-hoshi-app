@@ -10,6 +10,14 @@ import { VenuesPage } from './pages/VenuesPage'
 import { ProgramTypesPage } from './pages/ProgramTypesPage'
 import { SongsPage } from './pages/SongsPage'
 import { TeachingPointsPage } from './pages/TeachingPointsPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { ReportsPage } from './pages/ReportsPage'
+import { SlipPrintPage } from './pages/print/SlipPrintPage'
+import { SlipsRangePrintPage } from './pages/print/SlipsRangePrintPage'
+import { ChairmanPrintPage } from './pages/print/ChairmanPrintPage'
+import { CounselorPrintPage } from './pages/print/CounselorPrintPage'
+import { SchedulePrintPage } from './pages/print/SchedulePrintPage'
+import { AssignmentsRangePrintPage } from './pages/print/AssignmentsRangePrintPage'
 
 function LoginRoute() {
   const { session, loading } = useAuth()
@@ -22,16 +30,31 @@ function AdminArea() {
   return (
     <ProtectedRoute>
       <AppDataProvider>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<WeeklyProgramPage />} />
-            <Route path="/members" element={<MembersPage />} />
-            <Route path="/venues" element={<VenuesPage />} />
-            <Route path="/program-types" element={<ProgramTypesPage />} />
-            <Route path="/songs" element={<SongsPage />} />
-            <Route path="/teaching-points" element={<TeachingPointsPage />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/print/slip/:assignmentId" element={<SlipPrintPage />} />
+          <Route path="/print/slips/:from/:to" element={<SlipsRangePrintPage />} />
+          <Route path="/print/chairman/:from/:to" element={<ChairmanPrintPage />} />
+          <Route path="/print/counselor/:from/:to" element={<CounselorPrintPage />} />
+          <Route path="/print/schedule/:from/:to" element={<SchedulePrintPage />} />
+          <Route path="/print/assignments/:from/:to" element={<AssignmentsRangePrintPage />} />
+          <Route
+            path="/*"
+            element={
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<WeeklyProgramPage />} />
+                  <Route path="/members" element={<MembersPage />} />
+                  <Route path="/venues" element={<VenuesPage />} />
+                  <Route path="/program-types" element={<ProgramTypesPage />} />
+                  <Route path="/songs" element={<SongsPage />} />
+                  <Route path="/teaching-points" element={<TeachingPointsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Routes>
+              </Layout>
+            }
+          />
+        </Routes>
       </AppDataProvider>
     </ProtectedRoute>
   )

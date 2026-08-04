@@ -533,3 +533,386 @@ input {
     color: #e0a94a;
   }
 }
+
+/* ---- settings ---- */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+}
+
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.settings-form input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.settings-form button {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+/* ---- reports hub ---- */
+
+.reports-hint {
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.reports-range {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.reports-range label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.reports-range input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  max-width: 300px;
+}
+
+.reports-list a {
+  display: block;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.reports-list a:hover {
+  background: var(--accent-bg);
+}
+
+/* ---- print pages ---- */
+/* 印刷ページは常にライトテーマ(白地に黒)で表示する。画面のダークテーマ設定とは無関係 */
+
+.print-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+}
+
+.print-toolbar button,
+.print-toolbar a {
+  padding: 6px 14px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.print-toolbar button.primary {
+  background: #6b3bff;
+  border-color: #6b3bff;
+  color: #fff;
+  font-weight: 600;
+}
+
+.print-sheet {
+  background: #fff;
+  color: #111;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 12mm;
+  font-family: var(--sans);
+}
+
+.print-sheet h1 {
+  font-size: 20px;
+  color: #111;
+  margin-bottom: 4px;
+}
+
+.print-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+@media print {
+  .print-toolbar {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
+  .print-sheet {
+    padding: 0;
+    max-width: none;
+  }
+}
+
+/* ---- slip ---- */
+
+.slip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6mm;
+  padding: 8mm;
+  background: #fff;
+}
+
+.slip-sheet {
+  max-width: 100mm;
+  margin: 0;
+  border: 1px solid #999;
+  border-radius: 4px;
+  break-inside: avoid;
+}
+
+.slip-title {
+  text-align: center;
+  background: #eee;
+  padding: 8px;
+  margin: -12mm -12mm 12px;
+}
+
+.slip-fields {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  row-gap: 10px;
+  column-gap: 8px;
+  font-size: 13px;
+}
+
+.slip-fields dt {
+  color: #555;
+  white-space: nowrap;
+}
+
+.slip-fields dd {
+  margin: 0;
+}
+
+.slip-footnote {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+  font-size: 10px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* ---- chairman sheet ---- */
+
+.chair-sheet + .chair-sheet {
+  break-before: page;
+}
+
+.chair-date {
+  font-size: 15px;
+  color: #333;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #333;
+}
+
+.chair-section {
+  margin-bottom: 10px;
+}
+
+.chair-section-header {
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.chair-item {
+  padding: 5px 10px;
+  border-bottom: 1px dashed #ddd;
+  font-size: 13px;
+}
+
+.chair-item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.chair-item-time {
+  white-space: nowrap;
+  color: #444;
+  font-weight: 400;
+}
+
+.chair-item-detail {
+  color: #555;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.chair-item-presenter {
+  text-align: right;
+  font-size: 12px;
+  color: #222;
+  margin-top: 2px;
+}
+
+/* ---- counselor sheet ---- */
+
+.counselor-sheet + .counselor-sheet {
+  break-before: page;
+}
+
+.counselor-title {
+  background: #b7c98f;
+  padding: 8px;
+  margin: -12mm -12mm 12px;
+  text-align: center;
+}
+
+.counselor-date {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.counselor-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
+  font-size: 13px;
+}
+
+.counselor-item-heading {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.counselor-item-point {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.counselor-item-detail {
+  color: #555;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.counselor-item-presenter {
+  white-space: nowrap;
+  text-align: right;
+  font-weight: 600;
+}
+
+.counselor-item-endtime {
+  font-weight: 400;
+  color: #666;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+/* ---- schedule sheet ---- */
+
+.schedule-week {
+  margin-bottom: 14px;
+  break-inside: avoid;
+}
+
+.schedule-week-header {
+  display: flex;
+  justify-content: space-between;
+  background: #2a4d7a;
+  color: #fff;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.schedule-row {
+  padding: 4px 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.schedule-row-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.schedule-row-time {
+  white-space: nowrap;
+  color: #555;
+}
+
+.schedule-row-material {
+  color: #666;
+  font-size: 11px;
+}
+
+.schedule-row-presenter {
+  text-align: right;
+  color: #222;
+}
+
+/* ---- assignments range table ---- */
+
+.assignments-table th,
+.assignments-table td {
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.assignments-table th {
+  background: #444;
+  color: #fff;
+}
+
+.assignments-week-header td {
+  background: #6b3bff;
+  color: #fff;
+  font-weight: 700;
+}
