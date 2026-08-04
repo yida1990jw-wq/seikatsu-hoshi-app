@@ -70,19 +70,21 @@ export function SchedulePrintPage() {
                     key={item.id}
                     style={{ borderLeftColor: sectionColor(item.section) }}
                   >
-                    <span className="schedule-row-title">
-                      {item.title ?? item.program_types?.name}
-                      {item.material ? `(${item.material})` : ''}
-                    </span>
-                    <span className="schedule-row-time">
-                      {item.duration_minutes ? `${item.duration_minutes}分` : ''}
-                      {' (〜'}
-                      {formatClockTime(endMin)}
-                      {')'}
+                    <span className="schedule-row-left">
+                      <span className="schedule-row-title">
+                        {item.title ?? item.program_types?.name}
+                        {item.material ? `(${item.material})` : ''}
+                      </span>
+                      <span className="schedule-row-time">
+                        {item.duration_minutes ? `${item.duration_minutes}分` : ''}
+                        {' (〜'}
+                        {formatClockTime(endMin)}
+                        {')'}
+                      </span>
                     </span>
                     <span className="schedule-row-presenter">
                       {assignment?.member ? memberDisplayName(assignment.member) : ''}
-                      {assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}
+                      {assignment?.partner ? ` (${memberDisplayName(assignment.partner)})` : ''}
                     </span>
                   </div>
                 )

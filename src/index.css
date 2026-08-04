@@ -923,7 +923,8 @@ input {
 .schedule-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   padding: 1.5px 8px;
   border-bottom: 1px solid #eee;
   border-left: 4px solid transparent;
@@ -931,21 +932,31 @@ input {
   line-height: 1.35;
 }
 
-.schedule-row-title {
+.schedule-row-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   flex: 1;
+  min-width: 0;
+}
+
+.schedule-row-title {
   min-width: 0;
 }
 
 .schedule-row-time {
   white-space: nowrap;
   color: #555;
+  flex-shrink: 0;
 }
 
 .schedule-row-presenter {
-  white-space: nowrap;
-  min-width: 90px;
+  flex: 0 0 140px;
+  width: 140px;
   text-align: right;
   color: #222;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 @media print {
