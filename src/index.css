@@ -790,8 +790,12 @@ input {
 
 .chair-item {
   padding: 5px 10px;
-  border-bottom: 1px dashed #ddd;
+  border-bottom: none;
   font-size: 13px;
+}
+
+.chair-item-stripe {
+  background: #f0eefc;
 }
 
 .chair-item-row {

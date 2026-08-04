@@ -14,15 +14,21 @@ import {
   type ProgramWithType,
   type RangeData,
 } from '../../lib/printData'
+import type { Song } from '../../types/domain'
 
-function groupBySection(items: ProgramWithType[]): { section: string | null; items: ProgramWithType[] }[] {
-  const groups: { section: string | null; items: ProgramWithType[] }[] = []
-  for (const item of items) {
+interface ItemRow {
+  item: ProgramWithType
+  endMin: number
+}
+
+function groupBySection(rows: ItemRow[]): { section: string | null; rows: ItemRow[] }[] {
+  const groups: { section: string | null; rows: ItemRow[] }[] = []
+  for (const row of rows) {
     const last = groups[groups.length - 1]
-    if (last && last.section === item.section) {
-      last.items.push(item)
+    if (last && last.section === row.item.section) {
+      last.rows.push(row)
     } else {
-      groups.push({ section: item.section, items: [item] })
+      groups.push({ section: row.item.section, rows: [row] })
     }
   }
   return groups
@@ -36,7 +42,7 @@ function presenterLine(assignment: AssignmentWithRelations | undefined): string 
 
 export function ChairmanPrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
-  const { settings } = useAppData()
+  const { settings, songs } = useAppData()
   const [data, setData] = useState<RangeData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,13 +59,19 @@ export function ChairmanPrintPage() {
   if (error) return <div className="center-message error-text">{error}</div>
   if (!data) return null
 
+  function findSong(item: ProgramWithType): Song | undefined {
+    return item.song_id ? songs.find((s) => s.id === item.song_id) : undefined
+  }
+
   return (
     <div>
       <PrintToolbar backTo="/reports" />
       {data.dates.map((date) => {
         const items = data.programsByDate.get(date) ?? []
         const endMins = computeEndTimesMinutes(settings.meeting_start_time, items)
-        const groups = groupBySection(items)
+        const rows: ItemRow[] = items.map((item, idx) => ({ item, endMin: endMins[idx] }))
+        const groups = groupBySection(rows)
+        let rowIndex = 0
 
         return (
           <div className="print-sheet chair-sheet" key={date}>
@@ -75,21 +87,28 @@ export function ChairmanPrintPage() {
                     {group.section}
                   </div>
                 )}
-                {group.items.map((item) => {
-                  const idx = items.indexOf(item)
+                {group.rows.map(({ item, endMin }) => {
                   const assignment = data.assignmentByProgramId.get(item.id)
+                  const song = findSong(item)
+                  const title = song
+                    ? `${song.number}番の${item.title ?? item.program_types?.name}`
+                    : (item.title ?? item.program_types?.name)
+                  const songDetail = song ? `${song.title}${song.scripture ?? ''}` : null
                   const detail = [item.material, item.content].filter(Boolean).join(' ')
+                  const isStripe = rowIndex % 2 === 1
+                  rowIndex += 1
                   return (
-                    <div className="chair-item" key={item.id}>
+                    <div className={`chair-item ${isStripe ? 'chair-item-stripe' : ''}`} key={item.id}>
                       <div className="chair-item-row">
-                        <span className="chair-item-title">{item.title ?? item.program_types?.name}</span>
+                        <span className="chair-item-title">{title}</span>
                         <span className="chair-item-time">
                           {item.duration_minutes ? `${item.duration_minutes}分` : ''}
                           {' (〜'}
-                          {formatClockTime(endMins[idx])}
+                          {formatClockTime(endMin)}
                           {')'}
                         </span>
                       </div>
+                      {songDetail && <div className="chair-item-detail">{songDetail}</div>}
                       {detail && <div className="chair-item-detail">{detail}</div>}
                       {presenterLine(assignment) && (
                         <div className="chair-item-presenter">{presenterLine(assignment)}</div>
