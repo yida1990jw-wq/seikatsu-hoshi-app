@@ -4,7 +4,12 @@ import { useAppData } from '../../context/AppDataContext'
 import { PrintToolbar } from '../../components/PrintToolbar'
 import { memberDisplayName } from '../../lib/candidates'
 import { computeEndTimesMinutes, formatClockTime } from '../../lib/schedule'
-import { fetchRangeData, formatDateHeading, type RangeData } from '../../lib/printData'
+import { fetchRangeData, type RangeData } from '../../lib/printData'
+
+function formatDateSimple(dateStr: string): string {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })
+}
 
 export function CounselorPrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
@@ -40,7 +45,7 @@ export function CounselorPrintPage() {
         return (
           <div className="print-sheet counselor-sheet" key={date}>
             <h1 className="counselor-title">助言者用紙</h1>
-            <h2 className="counselor-date">{formatDateHeading(date)}</h2>
+            <h2 className="counselor-date">{formatDateSimple(date)}</h2>
             {studentItems.map(({ item, endMin }) => {
               const assignment = data.assignmentByProgramId.get(item.id)
               const teachingPoint = item.teaching_point_id

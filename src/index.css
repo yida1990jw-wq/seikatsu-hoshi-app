@@ -694,6 +694,10 @@ input {
   margin-bottom: 4px;
 }
 
+.print-sheet h2 {
+  color: #111;
+}
+
 .print-sheet table {
   width: 100%;
   border-collapse: collapse;
