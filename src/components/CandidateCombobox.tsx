@@ -65,10 +65,12 @@ export function CandidateCombobox({ candidates, onSelect, onClose, allowClear = 
               className={c.isDuplicateToday ? 'candidate-duplicate' : ''}
               onClick={() => onSelect(c.member.id)}
             >
-              <span className="candidate-name">{memberDisplayName(c.member)}</span>
+              <span className={`candidate-name ${c.previouslyPaired ? 'candidate-name-paired' : ''}`}>
+                {memberDisplayName(c.member)}
+              </span>
               <span className="candidate-meta">
                 {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
-                {formatLastAssigned(c.lastAssignedDate)}
+                {formatLastAssigned(c.lastAssignedDate, c.lastAssignedType)}
               </span>
             </button>
           </li>

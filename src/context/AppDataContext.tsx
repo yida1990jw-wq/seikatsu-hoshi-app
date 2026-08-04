@@ -1,6 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { buildLastAssignedMap, type AssignmentHistoryRow, type LastAssignedMap } from '../lib/candidates'
+import {
+  buildLastAssignedMap,
+  buildLastTeachingAssignmentMap,
+  buildPairingMap,
+  type AssignmentHistoryRow,
+  type LastAssignedMap,
+  type LastTeachingAssignmentMap,
+  type PairingMap,
+} from '../lib/candidates'
 import type { Member, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
 
 const DEFAULT_SETTINGS: Record<string, string> = {
@@ -15,6 +23,8 @@ interface AppDataContextValue {
   teachingPoints: TeachingPoint[]
   settings: Record<string, string>
   lastAssignedMap: LastAssignedMap
+  lastTeachingAssignmentMap: LastTeachingAssignmentMap
+  pairingMap: PairingMap
   loading: boolean
   error: string | null
   refetchHistory: () => Promise<void>
@@ -31,13 +41,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
   const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS)
   const [lastAssignedMap, setLastAssignedMap] = useState<LastAssignedMap>(new Map())
+  const [lastTeachingAssignmentMap, setLastTeachingAssignmentMap] = useState<LastTeachingAssignmentMap>(new Map())
+  const [pairingMap, setPairingMap] = useState<PairingMap>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchHistory = useCallback(async () => {
     const { data, error } = await supabase
       .from('assignments')
-      .select('member_id, partner_id, programs(date, program_type_id, program_types(partner_program_type_id))')
+      .select(
+        'member_id, partner_id, programs(date, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
+      )
 
     if (error) throw error
 
@@ -54,10 +68,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         program_date: program?.date ?? null,
         program_type_id: program?.program_type_id ?? null,
         partner_program_type_id: programType?.partner_program_type_id ?? null,
+        has_teaching_point: !!program?.teaching_point_id,
+        program_type_name: programType?.name ?? null,
       }
     })
 
     setLastAssignedMap(buildLastAssignedMap(rows))
+    setLastTeachingAssignmentMap(buildLastTeachingAssignmentMap(rows))
+    setPairingMap(buildPairingMap(rows))
   }, [])
 
   const fetchAll = useCallback(async () => {
@@ -114,6 +132,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         teachingPoints,
         settings,
         lastAssignedMap,
+        lastTeachingAssignmentMap,
+        pairingMap,
         loading,
         error,
         refetchHistory: fetchHistory,

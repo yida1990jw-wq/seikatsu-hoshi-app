@@ -62,6 +62,8 @@ export function WeeklyProgramPage() {
     songs,
     teachingPoints,
     lastAssignedMap,
+    lastTeachingAssignmentMap,
+    pairingMap,
     loading: appDataLoading,
     error: appDataError,
     refetchHistory,
@@ -666,6 +668,9 @@ export function WeeklyProgramPage() {
                     programType,
                     lastAssignedMap,
                     duplicateMemberIds: memberDuplicateSet,
+                    // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
+                    // 直近担当日を見る(特定の実演だけに偏らないようにするため)
+                    broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentMap : undefined,
                   })
                 : []
 
@@ -681,6 +686,9 @@ export function WeeklyProgramPage() {
                       lastAssignedMap,
                       duplicateMemberIds: partnerDuplicateSet,
                       requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
+                      // 課題付きプログラムのペアは、主担当と過去にペアだった人を優先度下げ(除外はしない)
+                      pairingMap: program.teaching_point_id ? pairingMap : undefined,
+                      currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,
                     })
                   : []
 
