@@ -49,23 +49,24 @@ export function CounselorPrintPage() {
 
               return (
                 <div className="counselor-item" key={item.id}>
-                  <div className="counselor-item-heading">
+                  <div className="counselor-item-title">
                     {item.title ?? item.program_types?.name}
                     {item.duration_minutes ? `(${item.duration_minutes}分)` : ''}
                   </div>
-                  {teachingPoint && (
-                    <div className="counselor-item-point">
-                      {teachingPoint.code} {teachingPoint.title}
-                      {teachingPoint.page ? `(${teachingPoint.page})` : ''}
-                    </div>
-                  )}
-                  {item.material && <div className="counselor-item-detail">{item.material}</div>}
-                  {item.content && <div className="counselor-item-detail">{item.content}</div>}
-                  <div className="counselor-item-presenter">
-                    {assignment?.member && <div>{memberDisplayName(assignment.member)}</div>}
-                    {assignment?.partner && <div>({memberDisplayName(assignment.partner)})</div>}
-                    <div className="counselor-item-endtime">〜{formatClockTime(endMin)}</div>
+                  <div className="counselor-item-point">
+                    {teachingPoint
+                      ? `${teachingPoint.code} ${teachingPoint.title}${teachingPoint.page ? `(${teachingPoint.page})` : ''}`
+                      : ''}
                   </div>
+                  <div className="counselor-item-row">
+                    <span>{item.material}</span>
+                    <span>{assignment?.member ? memberDisplayName(assignment.member) : ''}</span>
+                  </div>
+                  <div className="counselor-item-row">
+                    <span>{item.content}</span>
+                    <span>{assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}</span>
+                  </div>
+                  <div className="counselor-item-endtime">〜{formatClockTime(endMin)}</div>
                 </div>
               )
             })}
