@@ -916,3 +916,62 @@ input {
   color: #fff;
   font-weight: 700;
 }
+
+/* ---- paste import ---- */
+
+.paste-import {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+}
+
+.paste-import summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.paste-import-hint {
+  font-size: 13px;
+  color: var(--text);
+  margin: 10px 0;
+}
+
+.paste-import-textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.paste-import button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
+.paste-import button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.paste-import-result {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.paste-import-result ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  color: var(--danger);
+}

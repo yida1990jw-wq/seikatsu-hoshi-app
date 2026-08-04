@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
 import { getEligibleCandidates } from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
+import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
 
 type ProgramWithType = Program & { program_types: ProgramType | null }
@@ -79,6 +80,9 @@ export function WeeklyProgramPage() {
   const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
   const [draft, setDraft] = useState<ProgramDraft>(EMPTY_DRAFT)
   const [newRow, setNewRow] = useState<ProgramDraft>(EMPTY_DRAFT)
+  const [pasteText, setPasteText] = useState('')
+  const [pasteImporting, setPasteImporting] = useState(false)
+  const [pasteResult, setPasteResult] = useState<{ added: number; warnings: string[] } | null>(null)
 
   const loadAvailableDates = useCallback(async () => {
     const { data, error } = await supabase.from('programs').select('date').order('date', { ascending: true })
@@ -151,6 +155,19 @@ export function WeeklyProgramPage() {
   }
 
   const programTypesById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt])), [programTypes])
+
+  const programTypeOptions = useMemo(
+    () => programTypes.map((pt) => ({ id: pt.id, label: pt.name })),
+    [programTypes],
+  )
+  const songOptions = useMemo(
+    () => songs.map((s) => ({ id: s.id, label: `${s.number}番 ${s.title}` })),
+    [songs],
+  )
+  const teachingPointOptions = useMemo(
+    () => teachingPoints.map((t) => ({ id: t.id, label: `${t.code} ${t.title}` })),
+    [teachingPoints],
+  )
 
   const duplicateSetFor = useMemo(() => {
     return (programId: string, slot: 'member_id' | 'partner_id') => {
@@ -267,6 +284,81 @@ export function WeeklyProgramPage() {
       await loadAvailableDates()
     } catch (e) {
       setError(e instanceof Error ? e.message : '追加に失敗しました')
+    }
+  }
+
+  async function handlePasteImport() {
+    if (!selectedDate) return
+    const lines = pasteText.split('\n').map((l) => l.trimEnd()).filter((l) => l.trim() !== '')
+    if (lines.length === 0) return
+
+    setPasteImporting(true)
+    setError(null)
+    setPasteResult(null)
+
+    try {
+      const warnings: string[] = []
+      const maxOrder = programs.reduce((max, p) => Math.max(max, p.order_no ?? 0), 0)
+
+      const rows = lines.map((line, i) => {
+        const cols = line.split('\t')
+        const [section = '', typeName = '', title = '', material = '', content = '', duration = '', songNumber = '', tpCode = ''] =
+          cols
+
+        let programTypeId: string | null = null
+        if (typeName.trim()) {
+          const match = programTypes.find((pt) => pt.name === typeName.trim())
+          if (match) programTypeId = match.id
+          else warnings.push(`${i + 1}行目: 種別「${typeName.trim()}」が見つかりません`)
+        }
+
+        let songId: string | null = null
+        if (songNumber.trim()) {
+          const match = songs.find((s) => String(s.number) === songNumber.trim())
+          if (match) songId = match.id
+          else warnings.push(`${i + 1}行目: 歌番号「${songNumber.trim()}」が見つかりません`)
+        }
+
+        let teachingPointId: string | null = null
+        if (tpCode.trim()) {
+          const match = teachingPoints.find((t) => t.code === tpCode.trim())
+          if (match) teachingPointId = match.id
+          else warnings.push(`${i + 1}行目: 課題番号「${tpCode.trim()}」が見つかりません`)
+        }
+
+        return {
+          date: selectedDate,
+          order_no: maxOrder + i + 1,
+          section: section.trim() || null,
+          program_type_id: programTypeId,
+          title: title.trim() || null,
+          material: material.trim() || null,
+          content: content.trim() || null,
+          duration_minutes: duration.trim() ? Number(duration.trim()) : null,
+          song_id: songId,
+          teaching_point_id: teachingPointId,
+        }
+      })
+
+      const { data: created, error } = await supabase.from('programs').insert(rows).select()
+      if (error) throw error
+
+      const defaultVenue = venues.find((v) => v.name === '本会場') ?? venues[0]
+      if (created && created.length > 0 && defaultVenue) {
+        const { error: assignmentError } = await supabase
+          .from('assignments')
+          .insert(created.map((p) => ({ program_id: p.id, venue_id: defaultVenue.id })))
+        if (assignmentError) throw assignmentError
+      }
+
+      setPasteText('')
+      setPasteResult({ added: created?.length ?? 0, warnings })
+      await loadWeek(selectedDate)
+      await loadAvailableDates()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '取り込みに失敗しました')
+    } finally {
+      setPasteImporting(false)
     }
   }
 
@@ -407,6 +499,37 @@ export function WeeklyProgramPage() {
 
       {error && <p className="error-text">{error}</p>}
 
+      {manageMode && selectedDate && (
+        <details className="paste-import">
+          <summary>表形式で貼り付けて一括追加</summary>
+          <p className="paste-import-hint">
+            Excel等で「区分・種別名・タイトル・資料・内容・時間(分)・歌番号・課題番号」の順に列を作り、範囲コピーしてここに貼り付けてください(各列はタブ区切り、1行1プログラム)。種別名・歌番号・課題番号は既存の登録内容と完全一致で照合します。
+          </p>
+          <textarea
+            className="paste-import-textarea"
+            rows={6}
+            placeholder={'開会\t開会の言葉\t\t\t\t1\t\t\n神の言葉の宝\t聖書朗読\t\tエレミヤ23:25-36\t\t4\t\t教励 第11課'}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+          />
+          <button type="button" onClick={handlePasteImport} disabled={pasteImporting || !pasteText.trim()}>
+            {pasteImporting ? '取り込み中...' : '取り込む'}
+          </button>
+          {pasteResult && (
+            <div className="paste-import-result">
+              <p>{pasteResult.added}件追加しました。</p>
+              {pasteResult.warnings.length > 0 && (
+                <ul>
+                  {pasteResult.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </details>
+      )}
+
       {loadingWeek ? (
         <div className="center-message">読み込み中...</div>
       ) : (
@@ -447,17 +570,12 @@ export function WeeklyProgramPage() {
                         />
                       </td>
                       <td>
-                        <select
+                        <AutocompleteSelect
+                          options={programTypeOptions}
                           value={draft.program_type_id}
-                          onChange={(e) => setDraft((d) => ({ ...d, program_type_id: e.target.value }))}
-                        >
-                          <option value="">(種別未設定)</option>
-                          {programTypes.map((pt) => (
-                            <option key={pt.id} value={pt.id}>
-                              {pt.name}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="種別(任意)"
+                          onChange={(id) => setDraft((d) => ({ ...d, program_type_id: id }))}
+                        />
                         <input
                           placeholder="タイトル(任意)"
                           value={draft.title}
@@ -473,28 +591,18 @@ export function WeeklyProgramPage() {
                           value={draft.content}
                           onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
                         />
-                        <select
+                        <AutocompleteSelect
+                          options={songOptions}
                           value={draft.song_id}
-                          onChange={(e) => setDraft((d) => ({ ...d, song_id: e.target.value }))}
-                        >
-                          <option value="">(歌なし)</option>
-                          {songs.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.number}番 {s.title}
-                            </option>
-                          ))}
-                        </select>
-                        <select
+                          placeholder="歌(任意)"
+                          onChange={(id) => setDraft((d) => ({ ...d, song_id: id }))}
+                        />
+                        <AutocompleteSelect
+                          options={teachingPointOptions}
                           value={draft.teaching_point_id}
-                          onChange={(e) => setDraft((d) => ({ ...d, teaching_point_id: e.target.value }))}
-                        >
-                          <option value="">(教励課題なし)</option>
-                          {teachingPoints.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.code} {t.title}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="教励課題(任意)"
+                          onChange={(id) => setDraft((d) => ({ ...d, teaching_point_id: id }))}
+                        />
                       </td>
                       <td>
                         <input
@@ -647,17 +755,12 @@ export function WeeklyProgramPage() {
                   />
                 </td>
                 <td>
-                  <select
+                  <AutocompleteSelect
+                    options={programTypeOptions}
                     value={newRow.program_type_id}
-                    onChange={(e) => setNewRow((d) => ({ ...d, program_type_id: e.target.value }))}
-                  >
-                    <option value="">(種別未設定)</option>
-                    {programTypes.map((pt) => (
-                      <option key={pt.id} value={pt.id}>
-                        {pt.name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="種別(任意)"
+                    onChange={(id) => setNewRow((d) => ({ ...d, program_type_id: id }))}
+                  />
                   <input
                     placeholder="タイトル(任意)"
                     value={newRow.title}
@@ -673,28 +776,18 @@ export function WeeklyProgramPage() {
                     value={newRow.content}
                     onChange={(e) => setNewRow((d) => ({ ...d, content: e.target.value }))}
                   />
-                  <select
+                  <AutocompleteSelect
+                    options={songOptions}
                     value={newRow.song_id}
-                    onChange={(e) => setNewRow((d) => ({ ...d, song_id: e.target.value }))}
-                  >
-                    <option value="">(歌なし)</option>
-                    {songs.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.number}番 {s.title}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    placeholder="歌(任意)"
+                    onChange={(id) => setNewRow((d) => ({ ...d, song_id: id }))}
+                  />
+                  <AutocompleteSelect
+                    options={teachingPointOptions}
                     value={newRow.teaching_point_id}
-                    onChange={(e) => setNewRow((d) => ({ ...d, teaching_point_id: e.target.value }))}
-                  >
-                    <option value="">(教励課題なし)</option>
-                    {teachingPoints.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.code} {t.title}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="教励課題(任意)"
+                    onChange={(id) => setNewRow((d) => ({ ...d, teaching_point_id: id }))}
+                  />
                 </td>
                 <td>
                   <input
