@@ -10,7 +10,6 @@ import {
   hasSectionBand,
   sectionColor,
   sectionTextColor,
-  type AssignmentWithRelations,
   type ProgramWithType,
   type RangeData,
 } from '../../lib/printData'
@@ -34,11 +33,6 @@ function groupBySection(rows: ItemRow[]): { section: string | null; rows: ItemRo
   return groups
 }
 
-function presenterLine(assignment: AssignmentWithRelations | undefined): string {
-  if (!assignment?.member) return ''
-  const main = memberDisplayName(assignment.member)
-  return assignment.partner ? `${main}(${memberDisplayName(assignment.partner)})` : main
-}
 
 export function ChairmanPrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
@@ -110,8 +104,11 @@ export function ChairmanPrintPage() {
                       </div>
                       {songDetail && <div className="chair-item-detail">{songDetail}</div>}
                       {detail && <div className="chair-item-detail">{detail}</div>}
-                      {presenterLine(assignment) && (
-                        <div className="chair-item-presenter">{presenterLine(assignment)}</div>
+                      {assignment?.member && (
+                        <div className="chair-item-presenter">{memberDisplayName(assignment.member)}</div>
+                      )}
+                      {assignment?.partner && (
+                        <div className="chair-item-presenter">({memberDisplayName(assignment.partner)})</div>
                       )}
                     </div>
                   )
