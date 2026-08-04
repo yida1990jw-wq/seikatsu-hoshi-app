@@ -621,6 +621,33 @@ input {
   background: var(--accent-bg);
 }
 
+.reports-list-schedule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reports-list-schedule a {
+  flex: 1;
+}
+
+.reports-month-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.reports-month-label input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
 /* ---- print pages ---- */
 /* 印刷ページは常にライトテーマ(白地に黒)で表示する。画面のダークテーマ設定とは無関係 */
 
@@ -852,10 +879,34 @@ input {
   margin-top: 6px;
 }
 
-/* ---- schedule sheet ---- */
+/* ---- schedule sheet (A4 1ページ・1プログラム1行) ---- */
+
+.schedule-sheet {
+  font-size: 10px;
+}
+
+.schedule-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.schedule-title-row h1 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.schedule-month {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  white-space: nowrap;
+}
 
 .schedule-week {
-  margin-bottom: 14px;
+  margin-bottom: 5px;
   break-inside: avoid;
 }
 
@@ -864,21 +915,25 @@ input {
   justify-content: space-between;
   background: #2a4d7a;
   color: #fff;
-  padding: 4px 10px;
-  font-size: 13px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .schedule-row {
-  padding: 4px 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1.5px 8px;
   border-bottom: 1px solid #eee;
-  font-size: 12px;
+  border-left: 4px solid transparent;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
-.schedule-row-main {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+.schedule-row-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .schedule-row-time {
@@ -886,14 +941,21 @@ input {
   color: #555;
 }
 
-.schedule-row-material {
-  color: #666;
-  font-size: 11px;
-}
-
 .schedule-row-presenter {
+  white-space: nowrap;
+  min-width: 90px;
   text-align: right;
   color: #222;
+}
+
+@media print {
+  .schedule-sheet {
+    max-width: none;
+  }
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
 }
 
 /* ---- assignments range table ---- */

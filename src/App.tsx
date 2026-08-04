@@ -35,7 +35,7 @@ function AdminArea() {
           <Route path="/print/slips/:from/:to" element={<SlipsRangePrintPage />} />
           <Route path="/print/chairman/:from/:to" element={<ChairmanPrintPage />} />
           <Route path="/print/counselor/:from/:to" element={<CounselorPrintPage />} />
-          <Route path="/print/schedule/:from/:to" element={<SchedulePrintPage />} />
+          <Route path="/print/schedule/:from/:to/:month" element={<SchedulePrintPage />} />
           <Route path="/print/assignments/:from/:to" element={<AssignmentsRangePrintPage />} />
           <Route
             path="/*"

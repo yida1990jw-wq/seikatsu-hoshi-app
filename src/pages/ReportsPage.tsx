@@ -11,8 +11,7 @@ function endOfNextMonthStr(): string {
   return d.toISOString().slice(0, 10)
 }
 
-const REPORTS = [
-  { key: 'schedule', label: '集会予定表' },
+const OTHER_REPORTS = [
   { key: 'assignments', label: '割当予定表' },
   { key: 'chairman', label: '司会進行用紙' },
   { key: 'counselor', label: '助言者用紙' },
@@ -22,6 +21,7 @@ const REPORTS = [
 export function ReportsPage() {
   const [from, setFrom] = useState(todayStr())
   const [to, setTo] = useState(endOfNextMonthStr())
+  const [scheduleMonth, setScheduleMonth] = useState(todayStr().slice(0, 7))
 
   return (
     <div className="page">
@@ -39,8 +39,22 @@ export function ReportsPage() {
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
       </div>
+
       <ul className="reports-list">
-        {REPORTS.map((r) => (
+        <li className="reports-list-schedule">
+          <Link to={`/print/schedule/${from}/${to}/${scheduleMonth}`} target="_blank" rel="noopener noreferrer">
+            集会予定表
+          </Link>
+          <label className="reports-month-label">
+            表示する月
+            <input
+              type="month"
+              value={scheduleMonth}
+              onChange={(e) => setScheduleMonth(e.target.value)}
+            />
+          </label>
+        </li>
+        {OTHER_REPORTS.map((r) => (
           <li key={r.key}>
             <Link to={`/print/${r.key}/${from}/${to}`} target="_blank" rel="noopener noreferrer">
               {r.label}
