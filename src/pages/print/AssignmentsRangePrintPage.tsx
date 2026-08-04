@@ -30,6 +30,13 @@ export function AssignmentsRangePrintPage() {
       <div className="print-sheet assignments-sheet">
         <h1>クリスチャンとしての生活と奉仕の集会の割り当て予定表</h1>
         <table className="assignments-table">
+          <colgroup>
+            <col className="col-title" />
+            <col className="col-duration" />
+            <col className="col-point" />
+            <col className="col-student" />
+            <col className="col-partner" />
+          </colgroup>
           <thead>
             <tr>
               <th>担当</th>
@@ -40,35 +47,44 @@ export function AssignmentsRangePrintPage() {
             </tr>
           </thead>
           <tbody>
-            {data.dates.map((date) => {
-              const items = (data.programsByDate.get(date) ?? []).filter((item) => item.teaching_point_id)
-              if (items.length === 0) return null
-              const chairman = findChairmanName(data.programsByDate.get(date) ?? [], data.assignmentByProgramId, programTypes)
+            {(() => {
+              let rowIndex = 0
+              return data.dates.map((date) => {
+                const items = (data.programsByDate.get(date) ?? []).filter((item) => item.teaching_point_id)
+                if (items.length === 0) return null
+                const chairman = findChairmanName(
+                  data.programsByDate.get(date) ?? [],
+                  data.assignmentByProgramId,
+                  programTypes,
+                )
 
-              return (
-                <Fragment key={date}>
-                  <tr className="assignments-week-header">
-                    <td colSpan={4}>{formatDateHeading(date)}</td>
-                    <td>{chairman ? `助言者: ${chairman}` : ''}</td>
-                  </tr>
-                  {items.map((item) => {
-                    const assignment = data.assignmentByProgramId.get(item.id)
-                    const teachingPoint = item.teaching_point_id
-                      ? teachingPoints.find((t) => t.id === item.teaching_point_id)
-                      : null
-                    return (
-                      <tr key={item.id}>
-                        <td>{item.title ?? item.program_types?.name}</td>
-                        <td>{item.duration_minutes ? `${item.duration_minutes}分` : ''}</td>
-                        <td>{teachingPoint ? `${teachingPoint.code} ${teachingPoint.title}` : ''}</td>
-                        <td>{assignment?.member ? memberDisplayName(assignment.member) : ''}</td>
-                        <td>{assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}</td>
-                      </tr>
-                    )
-                  })}
-                </Fragment>
-              )
-            })}
+                return (
+                  <Fragment key={date}>
+                    <tr className="assignments-week-header">
+                      <td colSpan={4}>{formatDateHeading(date)}</td>
+                      <td>{chairman ? `助言者: ${chairman}` : ''}</td>
+                    </tr>
+                    {items.map((item) => {
+                      const assignment = data.assignmentByProgramId.get(item.id)
+                      const teachingPoint = item.teaching_point_id
+                        ? teachingPoints.find((t) => t.id === item.teaching_point_id)
+                        : null
+                      const isStripe = rowIndex % 2 === 1
+                      rowIndex += 1
+                      return (
+                        <tr key={item.id} className={isStripe ? 'assignments-stripe' : undefined}>
+                          <td>{item.title ?? item.program_types?.name}</td>
+                          <td>{item.duration_minutes ? `(${item.duration_minutes}分)` : ''}</td>
+                          <td>{teachingPoint?.code ?? ''}</td>
+                          <td>{assignment?.member ? memberDisplayName(assignment.member) : ''}</td>
+                          <td>{assignment?.partner ? `(${memberDisplayName(assignment.partner)})` : ''}</td>
+                        </tr>
+                      )
+                    })}
+                  </Fragment>
+                )
+              })
+            })()}
           </tbody>
         </table>
       </div>

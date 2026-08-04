@@ -972,25 +972,66 @@ input {
   }
 }
 
-/* ---- assignments range table ---- */
+/* ---- assignments range table (罫線なし・縞模様) ---- */
+
+.assignments-sheet {
+  font-size: 9px;
+}
+
+.assignments-sheet h1 {
+  font-size: 14px;
+}
+
+.assignments-table {
+  border-collapse: collapse;
+}
 
 .assignments-table th,
 .assignments-table td {
-  border: 1px solid #ccc;
-  padding: 5px 8px;
-  font-size: 12px;
+  border: none;
+  padding: 2px 8px;
+  font-size: 9px;
   text-align: left;
+}
+
+.assignments-table col.col-title {
+  width: 26%;
+}
+.assignments-table col.col-duration {
+  width: 8%;
+}
+.assignments-table col.col-point {
+  width: 16%;
+}
+.assignments-table col.col-student {
+  width: 25%;
+}
+.assignments-table col.col-partner {
+  width: 25%;
 }
 
 .assignments-table th {
   background: #444;
   color: #fff;
+  font-size: 10px;
+  padding: 3px 8px;
+}
+
+.assignments-stripe td {
+  background: #f0eefc;
 }
 
 .assignments-week-header td {
   background: #6b3bff;
   color: #fff;
   font-weight: 700;
+  padding: 3px 8px;
+}
+
+@media print {
+  .assignments-sheet {
+    max-width: none;
+  }
 }
 
 /* ---- paste import ---- */
