@@ -7,6 +7,7 @@ import { computeEndTimesMinutes, formatClockTime } from '../../lib/schedule'
 import {
   fetchRangeData,
   formatDateHeading,
+  hasSectionBand,
   sectionColor,
   sectionTextColor,
   type AssignmentWithRelations,
@@ -66,7 +67,7 @@ export function ChairmanPrintPage() {
             <h2 className="chair-date">{formatDateHeading(date)}</h2>
             {groups.map((group, gi) => (
               <div className="chair-section" key={gi}>
-                {group.section && (
+                {hasSectionBand(group.section) && (
                   <div
                     className="chair-section-header"
                     style={{ background: sectionColor(group.section), color: sectionTextColor(group.section) }}

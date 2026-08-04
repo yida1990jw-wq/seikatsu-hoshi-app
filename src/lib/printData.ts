@@ -61,22 +61,34 @@ export function formatDateHeading(dateStr: string): string {
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 }
 
+/** 開会・閉会は帯なし(透明)。それ以外は司会進行用紙の配色に合わせる */
 const SECTION_COLORS: Record<string, string> = {
-  開会: '#d9d9d9',
-  神の言葉の宝: '#e8b923',
-  野外奉仕に励む: '#7c7c2e',
-  伝道を楽しもう: '#7c7c2e',
+  神の言葉の宝: '#707070',
+  野外奉仕に励む: '#e8b923',
+  伝道を楽しもう: '#e8b923',
   クリスチャンとして生活する: '#7a1f2b',
-  閉会: '#d9d9d9',
+}
+
+const SECTION_TEXT_COLORS: Record<string, string> = {
+  神の言葉の宝: '#fff',
+  野外奉仕に励む: '#222',
+  伝道を楽しもう: '#222',
+  クリスチャンとして生活する: '#fff',
+}
+
+/** 帯が不要なセクション(開会・閉会) */
+export function hasSectionBand(section: string | null): boolean {
+  return !!section && section in SECTION_COLORS
 }
 
 export function sectionColor(section: string | null): string {
-  if (!section) return '#d9d9d9'
-  return SECTION_COLORS[section] ?? '#888'
+  if (!section) return 'transparent'
+  return SECTION_COLORS[section] ?? 'transparent'
 }
 
 export function sectionTextColor(section: string | null): string {
-  return section === '開会' || section === '閉会' ? '#222' : '#fff'
+  if (!section) return '#222'
+  return SECTION_TEXT_COLORS[section] ?? '#222'
 }
 
 /** その日の「開会の言葉」の担当者を、司会者(=助言者)として返す */
