@@ -1,4 +1,4 @@
-export const POSITIONS = ['長老', '援助奉仕者', '成員', '伝道者', '入校者'] as const
+export const POSITIONS = ['長老', '援助奉仕者', '成員', '伝道者', '入校者', '巡回監督'] as const
 export type Position = (typeof POSITIONS)[number]
 
 export const MEMBER_STATUSES = ['現役', '転出', '休止', '対象外'] as const
