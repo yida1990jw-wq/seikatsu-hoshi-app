@@ -155,6 +155,93 @@ export function WeeklyProgramPage() {
     if (selectedDate) loadWeek(selectedDate)
   }, [selectedDate, loadWeek])
 
+  const nearbyDates = useMemo(() => {
+    if (!selectedDate) return { prev1: null, next1: null, prev2: null, next2: null }
+    const idx = availableDates.indexOf(selectedDate)
+    if (idx === -1) return { prev1: null, next1: null, prev2: null, next2: null }
+    return {
+      prev1: availableDates[idx - 1] ?? null,
+      next1: availableDates[idx + 1] ?? null,
+      prev2: availableDates[idx - 2] ?? null,
+      next2: availableDates[idx + 2] ?? null,
+    }
+  }, [availableDates, selectedDate])
+
+  const [prev1Ids, setPrev1Ids] = useState<Set<string>>(new Set())
+  const [next1Ids, setNext1Ids] = useState<Set<string>>(new Set())
+  const [prev2Ids, setPrev2Ids] = useState<Set<string>>(new Set())
+  const [next2Ids, setNext2Ids] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const { prev1, next1, prev2, next2 } = nearbyDates
+    const allDates = [prev1, next1, prev2, next2].filter((d): d is string => !!d)
+
+    if (allDates.length === 0) {
+      setPrev1Ids(new Set())
+      setNext1Ids(new Set())
+      setPrev2Ids(new Set())
+      setNext2Ids(new Set())
+      return
+    }
+
+    let cancelled = false
+    async function loadNearby() {
+      const { data: progRows, error: progError } = await supabase.from('programs').select('id, date').in('date', allDates)
+      if (progError || !progRows || cancelled) return
+
+      const programIds = progRows.map((p) => p.id)
+      if (programIds.length === 0) {
+        if (!cancelled) {
+          setPrev1Ids(new Set())
+          setNext1Ids(new Set())
+          setPrev2Ids(new Set())
+          setNext2Ids(new Set())
+        }
+        return
+      }
+
+      const { data: asgRows, error: asgError } = await supabase
+        .from('assignments')
+        .select('member_id, partner_id, program_id')
+        .in('program_id', programIds)
+      if (asgError || !asgRows || cancelled) return
+
+      const dateByProgramId = new Map(progRows.map((p) => [p.id, p.date]))
+      const sets = { prev1: new Set<string>(), next1: new Set<string>(), prev2: new Set<string>(), next2: new Set<string>() }
+      for (const row of asgRows) {
+        const date = dateByProgramId.get(row.program_id)
+        const target = date === prev1 ? sets.prev1 : date === next1 ? sets.next1 : date === prev2 ? sets.prev2 : date === next2 ? sets.next2 : null
+        if (!target) continue
+        if (row.member_id) target.add(row.member_id)
+        if (row.partner_id) target.add(row.partner_id)
+      }
+      if (!cancelled) {
+        setPrev1Ids(sets.prev1)
+        setNext1Ids(sets.next1)
+        setPrev2Ids(sets.prev2)
+        setNext2Ids(sets.next2)
+      }
+    }
+    loadNearby()
+    return () => {
+      cancelled = true
+    }
+  }, [nearbyDates.prev1, nearbyDates.next1, nearbyDates.prev2, nearbyDates.next2])
+
+  function getProximityLabel(memberId: string | undefined | null): string | undefined {
+    if (!memberId) return undefined
+    const parts: string[] = []
+    if (prev1Ids.has(memberId)) parts.push('-1')
+    if (next1Ids.has(memberId)) parts.push('1')
+    if (parts.length > 0) return parts.join(',')
+    if (prev2Ids.has(memberId)) parts.push('-2')
+    if (next2Ids.has(memberId)) parts.push('2')
+    return parts.length > 0 ? parts.join(',') : undefined
+  }
+
+  const oneWeekAwayIds = useMemo(() => new Set([...prev1Ids, ...next1Ids]), [prev1Ids, next1Ids])
+  const twoWeeksAwayIds = useMemo(() => new Set([...prev2Ids, ...next2Ids]), [prev2Ids, next2Ids])
+
   function goPrev() {
     if (!selectedDate) return
     const candidates = availableDates.filter((d) => d < selectedDate)
@@ -719,6 +806,9 @@ export function WeeklyProgramPage() {
                         candidates={memberCandidates}
                         saving={saving}
                         isDuplicateToday={!!assignment?.member && memberDuplicateSet.has(assignment.member.id)}
+                        nearOneWeek={!!assignment?.member && oneWeekAwayIds.has(assignment.member.id)}
+                        nearTwoWeeks={!!assignment?.member && twoWeeksAwayIds.has(assignment.member.id)}
+                        proximityLabel={getProximityLabel(assignment?.member?.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { member_id: memberId })}
                       />
                     ) : (
@@ -732,6 +822,9 @@ export function WeeklyProgramPage() {
                         candidates={partnerCandidates}
                         saving={saving}
                         isDuplicateToday={!!assignment?.partner && partnerDuplicateSet.has(assignment.partner.id)}
+                        nearOneWeek={!!assignment?.partner && oneWeekAwayIds.has(assignment.partner.id)}
+                        nearTwoWeeks={!!assignment?.partner && twoWeeksAwayIds.has(assignment.partner.id)}
+                        proximityLabel={getProximityLabel(assignment?.partner?.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
                     ) : (

@@ -11,6 +11,9 @@ interface AssignmentCellProps {
   saving?: boolean
   placeholder?: string
   isDuplicateToday?: boolean
+  nearOneWeek?: boolean
+  nearTwoWeeks?: boolean
+  proximityLabel?: string
 }
 
 export function AssignmentCell({
@@ -20,6 +23,9 @@ export function AssignmentCell({
   saving,
   placeholder = '未割当',
   isDuplicateToday,
+  nearOneWeek,
+  nearTwoWeeks,
+  proximityLabel,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
 
@@ -36,16 +42,32 @@ export function AssignmentCell({
     )
   }
 
-  const showDuplicate = !!currentMember && !!isDuplicateToday
+  // 優先度: 同日重複 > 前後1週 > 前後2週
+  const proximityClass = !currentMember
+    ? ''
+    : isDuplicateToday
+      ? 'assignment-duplicate'
+      : nearOneWeek
+        ? 'assignment-near-1w'
+        : nearTwoWeeks
+          ? 'assignment-near-2w'
+          : ''
+
+  // ラベルは色帯と同じ優先度でのみ表示する(同日重複の時は表示しない)
+  const showLabel = !isDuplicateToday && (nearOneWeek || nearTwoWeeks) && !!proximityLabel
 
   return (
     <button
       type="button"
-      className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${showDuplicate ? 'assignment-duplicate' : ''}`}
+      className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${proximityClass}`}
       onClick={() => setOpen(true)}
       disabled={saving}
     >
-      {saving ? '保存中...' : currentMember ? memberDisplayName(currentMember) : placeholder}
+      {saving
+        ? '保存中...'
+        : currentMember
+          ? `${memberDisplayName(currentMember)}${showLabel ? ` ${proximityLabel}` : ''}`
+          : placeholder}
     </button>
   )
 }

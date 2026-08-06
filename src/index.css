@@ -453,6 +453,15 @@ input {
   }
 }
 
+.assignment-value.assignment-near-1w {
+  color: var(--accent);
+}
+
+.assignment-value.assignment-near-2w {
+  color: var(--accent);
+  opacity: 0.6;
+}
+
 .candidate-combobox {
   position: relative;
   min-width: 220px;
