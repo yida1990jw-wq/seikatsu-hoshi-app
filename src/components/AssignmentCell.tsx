@@ -36,18 +36,16 @@ export function AssignmentCell({
     )
   }
 
+  const showDuplicate = !!currentMember && !!isDuplicateToday
+
   return (
     <button
       type="button"
-      className={`assignment-value ${currentMember ? '' : 'assignment-empty'}`}
+      className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${showDuplicate ? 'assignment-duplicate' : ''}`}
       onClick={() => setOpen(true)}
       disabled={saving}
     >
-      {saving
-        ? '保存中...'
-        : currentMember
-          ? `${currentMember && isDuplicateToday ? '⚠ ' : ''}${memberDisplayName(currentMember)}`
-          : placeholder}
+      {saving ? '保存中...' : currentMember ? memberDisplayName(currentMember) : placeholder}
     </button>
   )
 }

@@ -443,6 +443,16 @@ input {
   font-weight: 400;
 }
 
+.assignment-value.assignment-duplicate {
+  color: #c07a1f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .assignment-value.assignment-duplicate {
+    color: #e0a94a;
+  }
+}
+
 .candidate-combobox {
   position: relative;
   min-width: 220px;

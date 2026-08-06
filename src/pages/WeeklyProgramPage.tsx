@@ -54,6 +54,8 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+const SELECTED_DATE_KEY = 'weeklyProgram.selectedDate'
+
 export function WeeklyProgramPage() {
   const {
     members,
@@ -99,11 +101,20 @@ export function WeeklyProgramPage() {
 
   useEffect(() => {
     loadAvailableDates().then((dates) => {
+      const saved = sessionStorage.getItem(SELECTED_DATE_KEY)
+      if (saved) {
+        setSelectedDate(saved)
+        return
+      }
       const today = todayStr()
       const upcoming = dates.find((d) => d >= today)
       setSelectedDate(upcoming ?? dates[dates.length - 1] ?? today)
     })
   }, [loadAvailableDates])
+
+  useEffect(() => {
+    if (selectedDate) sessionStorage.setItem(SELECTED_DATE_KEY, selectedDate)
+  }, [selectedDate])
 
   const loadWeek = useCallback(async (date: string) => {
     setLoadingWeek(true)
