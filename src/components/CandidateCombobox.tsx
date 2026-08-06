@@ -4,12 +4,19 @@ import { formatLastAssigned, memberDisplayName } from '../lib/candidates'
 
 interface CandidateComboboxProps {
   candidates: Candidate[]
+  referenceDate: string
   onSelect: (memberId: string | null) => void
   onClose: () => void
   allowClear?: boolean
 }
 
-export function CandidateCombobox({ candidates, onSelect, onClose, allowClear = true }: CandidateComboboxProps) {
+export function CandidateCombobox({
+  candidates,
+  referenceDate,
+  onSelect,
+  onClose,
+  allowClear = true,
+}: CandidateComboboxProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -70,7 +77,7 @@ export function CandidateCombobox({ candidates, onSelect, onClose, allowClear = 
               </span>
               <span className="candidate-meta">
                 {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
-                {formatLastAssigned(c.lastAssignedDate, c.lastAssignedType)}
+                {formatLastAssigned(c.lastAssignedDate, c.lastAssignedType, referenceDate)}
               </span>
             </button>
           </li>

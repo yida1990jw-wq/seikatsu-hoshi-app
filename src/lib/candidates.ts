@@ -13,14 +13,24 @@ export interface AssignmentHistoryRow {
   program_type_name: string | null
 }
 
-/** memberId -> (programTypeId -> 直近の担当日) */
+/** 日付文字列(YYYY-MM-DD)同士の差分日数(a - b)。正なら a の方が未来。 */
+function daysBetween(a: string, b: string): number {
+  return Math.round((new Date(a).getTime() - new Date(b).getTime()) / (1000 * 60 * 60 * 24))
+}
+
+/** memberId -> (programTypeId -> 基準日に最も近い担当日) */
 export type LastAssignedMap = Map<string, Map<string, string>>
 
 /**
- * 役割(担当者/ペア)ごとの直近担当日マップを作る。担当者としての履歴とペアとしての履歴を
- * 混在させないよう、role で明示的に片方だけを集計する。
+ * 役割(担当者/ペア)ごとに、基準日(referenceDate、通常は今表示している週の日付)に
+ * 最も近い担当日を集計する。過去だけでなく未来の担当日も対象になる(表示側で前後を判定する)。
+ * 担当者としての履歴とペアとしての履歴を混在させないよう、role で明示的に片方だけを集計する。
  */
-export function buildLastAssignedMap(rows: AssignmentHistoryRow[], role: 'member' | 'partner'): LastAssignedMap {
+export function buildLastAssignedMap(
+  rows: AssignmentHistoryRow[],
+  role: 'member' | 'partner',
+  referenceDate: string,
+): LastAssignedMap {
   const map: LastAssignedMap = new Map()
 
   function record(memberId: string | null, typeId: string | null, date: string) {
@@ -31,7 +41,7 @@ export function buildLastAssignedMap(rows: AssignmentHistoryRow[], role: 'member
       map.set(memberId, typeMap)
     }
     const existing = typeMap.get(typeId)
-    if (!existing || date > existing) {
+    if (!existing || Math.abs(daysBetween(date, referenceDate)) < Math.abs(daysBetween(existing, referenceDate))) {
       typeMap.set(typeId, date)
     }
   }
@@ -53,13 +63,14 @@ export interface LastTeachingAssignment {
   typeName: string
 }
 
-/** memberId -> 課題(教励課題)付きプログラムに最後に割り当てられた日付と種別名(会話を始める等) */
+/** memberId -> 課題(教励課題)付きプログラムのうち基準日に最も近い担当日と種別名(会話を始める等) */
 export type LastTeachingAssignmentMap = Map<string, LastTeachingAssignment>
 
 /** buildLastAssignedMap と同様、担当者としての課題履歴とペアとしての課題履歴を混在させない */
 export function buildLastTeachingAssignmentMap(
   rows: AssignmentHistoryRow[],
   role: 'member' | 'partner',
+  referenceDate: string,
 ): LastTeachingAssignmentMap {
   const map: LastTeachingAssignmentMap = new Map()
 
@@ -68,7 +79,10 @@ export function buildLastTeachingAssignmentMap(
     const memberId = role === 'member' ? row.member_id : row.partner_id
     if (!memberId) continue
     const existing = map.get(memberId)
-    if (!existing || row.program_date > existing.date) {
+    if (
+      !existing ||
+      Math.abs(daysBetween(row.program_date, referenceDate)) < Math.abs(daysBetween(existing.date, referenceDate))
+    ) {
       map.set(memberId, { date: row.program_date, typeName: row.program_type_name })
     }
   }
@@ -82,12 +96,13 @@ export type PairingMap = Map<string, string[]>
 /**
  * 教励課題付き(実演系)プログラムでのペア実績のみを対象にする。会衆の聖書研究の
  * 担当者/朗読者のような、実演ではないペアはここに含めない。
+ * referenceDate より後(まだ先の話)のペア実績は、今組んでいる週の判断材料にはならないため含めない。
  */
-export function buildPairingMap(rows: AssignmentHistoryRow[]): PairingMap {
+export function buildPairingMap(rows: AssignmentHistoryRow[], referenceDate: string): PairingMap {
   const sorted = rows
     .filter(
       (r): r is AssignmentHistoryRow & { program_date: string; member_id: string; partner_id: string } =>
-        Boolean(r.has_teaching_point && r.program_date && r.member_id && r.partner_id),
+        Boolean(r.has_teaching_point && r.program_date && r.member_id && r.partner_id && r.program_date <= referenceDate),
     )
     .sort((a, b) => (a.program_date < b.program_date ? -1 : a.program_date > b.program_date ? 1 : 0))
 
@@ -141,6 +156,8 @@ interface GetCandidatesParams {
   members: Member[]
   programType: ProgramType
   lastAssignedMap: LastAssignedMap
+  /** 候補の並び替え・前回日付表示の基準日(通常は今表示している週の日付) */
+  referenceDate: string
   /** 同じ日に既に他のプログラムへ割り当て済みのメンバー。除外はせず、注意喚起の表示にのみ使う */
   duplicateMemberIds?: Set<string>
   /** ペア選定時、主担当と同性に絞る場合に指定 */
@@ -154,12 +171,14 @@ interface GetCandidatesParams {
 
 /**
  * program_type の条件(立場・性別・特別承認)を満たし、かつ status=現役 のメンバーを候補として返す。
- * 直近このプログラム種別を担当していない順(未実施を最優先)に並べ、同日の重複がある候補は末尾に回す。
+ * 基準日(referenceDate)から最も離れた日に担当した人(=未実施を含め最も久しぶりの人)を優先し、
+ * 同日の重複がある候補は末尾に回す。
  */
 export function getEligibleCandidates({
   members,
   programType,
   lastAssignedMap,
+  referenceDate,
   duplicateMemberIds,
   requiredGender,
   broadRecencyMap,
@@ -195,6 +214,7 @@ export function getEligibleCandidates({
     }
   })
 
+  // 基準日からの距離(絶対値)が遠いほど優先(=未実施は最優先、直近ほど後回し)。過去/未来は区別しない。
   candidates.sort((a, b) => {
     if (a.isDuplicateToday !== b.isDuplicateToday) return a.isDuplicateToday ? 1 : -1
     if (a.previouslyPaired !== b.previouslyPaired) return a.previouslyPaired ? 1 : -1
@@ -203,7 +223,9 @@ export function getEligibleCandidates({
     }
     if (!a.lastAssignedDate) return -1
     if (!b.lastAssignedDate) return 1
-    return a.lastAssignedDate.localeCompare(b.lastAssignedDate)
+    const distanceA = Math.abs(daysBetween(a.lastAssignedDate, referenceDate))
+    const distanceB = Math.abs(daysBetween(b.lastAssignedDate, referenceDate))
+    return distanceB - distanceA
   })
 
   return candidates
@@ -217,16 +239,17 @@ export function memberDisplayName(member: Member): string {
   return `${member.last_name} ${member.first_name}${member.honorific}`
 }
 
-export function formatLastAssigned(
-  dateStr: string | null,
-  typeName?: string | null,
-  today: Date = new Date(),
-): string {
+/**
+ * referenceDate(通常は今表示している週の日付)を基準に、過去なら「前回」、
+ * 未来(先の週まで既に入力済みの担当)なら「今後」とラベルを分けて表示する。
+ */
+export function formatLastAssigned(dateStr: string | null, typeName: string | null | undefined, referenceDate: string): string {
   if (!dateStr) return '初担当'
-  const last = new Date(dateStr)
-  const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24))
-  const diffWeeks = Math.round(diffDays / 7)
-  const formatted = last.toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' })
-  const period = diffWeeks <= 0 ? formatted : `${formatted}(${diffWeeks}週間前)`
-  return typeName ? `前回: ${period}・${typeName}` : `前回: ${period}`
+  const diffDays = daysBetween(dateStr, referenceDate)
+  const diffWeeks = Math.round(Math.abs(diffDays) / 7)
+  const formatted = new Date(dateStr).toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' })
+  const isFuture = diffDays > 0
+  const label = isFuture ? '今後' : '前回'
+  const period = diffWeeks === 0 ? formatted : `${formatted}(${diffWeeks}週間${isFuture ? '後' : '前'})`
+  return typeName ? `${label}: ${period}・${typeName}` : `${label}: ${period}`
 }

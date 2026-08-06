@@ -1,14 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import {
-  buildLastAssignedMap,
-  buildLastTeachingAssignmentMap,
-  buildPairingMap,
-  type AssignmentHistoryRow,
-  type LastAssignedMap,
-  type LastTeachingAssignmentMap,
-  type PairingMap,
-} from '../lib/candidates'
+import type { AssignmentHistoryRow } from '../lib/candidates'
 import type { Member, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
 
 const DEFAULT_SETTINGS: Record<string, string> = {
@@ -22,15 +14,11 @@ interface AppDataContextValue {
   songs: Song[]
   teachingPoints: TeachingPoint[]
   settings: Record<string, string>
-  /** 担当者としての直近担当日(役割を混在させない) */
-  lastAssignedAsMemberMap: LastAssignedMap
-  /** ペアとしての直近担当日(役割を混在させない) */
-  lastAssignedAsPartnerMap: LastAssignedMap
-  /** 担当者としての課題付きプログラム全体での直近担当日 */
-  lastTeachingAssignmentAsMemberMap: LastTeachingAssignmentMap
-  /** ペアとしての課題付きプログラム全体での直近担当日 */
-  lastTeachingAssignmentAsPartnerMap: LastTeachingAssignmentMap
-  pairingMap: PairingMap
+  /**
+   * 担当履歴の生データ。前回/今後の担当日やペア履歴は、表示している週の日付を基準に
+   * 都度計算する必要があるため、集計済みマップではなく生の行を渡す(src/lib/candidates.ts参照)。
+   */
+  historyRows: AssignmentHistoryRow[]
   loading: boolean
   error: string | null
   refetchHistory: () => Promise<void>
@@ -46,14 +34,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([])
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
   const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS)
-  const [lastAssignedAsMemberMap, setLastAssignedAsMemberMap] = useState<LastAssignedMap>(new Map())
-  const [lastAssignedAsPartnerMap, setLastAssignedAsPartnerMap] = useState<LastAssignedMap>(new Map())
-  const [lastTeachingAssignmentAsMemberMap, setLastTeachingAssignmentAsMemberMap] = useState<LastTeachingAssignmentMap>(
-    new Map(),
-  )
-  const [lastTeachingAssignmentAsPartnerMap, setLastTeachingAssignmentAsPartnerMap] =
-    useState<LastTeachingAssignmentMap>(new Map())
-  const [pairingMap, setPairingMap] = useState<PairingMap>(new Map())
+  const [historyRows, setHistoryRows] = useState<AssignmentHistoryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,11 +65,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    setLastAssignedAsMemberMap(buildLastAssignedMap(rows, 'member'))
-    setLastAssignedAsPartnerMap(buildLastAssignedMap(rows, 'partner'))
-    setLastTeachingAssignmentAsMemberMap(buildLastTeachingAssignmentMap(rows, 'member'))
-    setLastTeachingAssignmentAsPartnerMap(buildLastTeachingAssignmentMap(rows, 'partner'))
-    setPairingMap(buildPairingMap(rows))
+    setHistoryRows(rows)
   }, [])
 
   const fetchAll = useCallback(async () => {
@@ -144,11 +121,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         songs,
         teachingPoints,
         settings,
-        lastAssignedAsMemberMap,
-        lastAssignedAsPartnerMap,
-        lastTeachingAssignmentAsMemberMap,
-        lastTeachingAssignmentAsPartnerMap,
-        pairingMap,
+        historyRows,
         loading,
         error,
         refetchHistory: fetchHistory,

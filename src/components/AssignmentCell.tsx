@@ -7,6 +7,8 @@ import { CandidateCombobox } from './CandidateCombobox'
 interface AssignmentCellProps {
   currentMember: Member | null | undefined
   candidates: Candidate[]
+  /** 候補一覧の「前回/今後」表示の基準日 */
+  referenceDate: string
   onAssign: (memberId: string | null) => void
   saving?: boolean
   placeholder?: string
@@ -20,6 +22,7 @@ interface AssignmentCellProps {
 export function AssignmentCell({
   currentMember,
   candidates,
+  referenceDate,
   onAssign,
   saving,
   placeholder = '未割当',
@@ -35,6 +38,7 @@ export function AssignmentCell({
     return (
       <CandidateCombobox
         candidates={candidates}
+        referenceDate={referenceDate}
         onClose={() => setOpen(false)}
         onSelect={(memberId) => {
           onAssign(memberId)

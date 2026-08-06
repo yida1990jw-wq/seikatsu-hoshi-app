@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
-import { getEligibleCandidates } from '../lib/candidates'
+import { buildLastAssignedMap, buildLastTeachingAssignmentMap, buildPairingMap, getEligibleCandidates } from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
@@ -68,11 +68,7 @@ export function WeeklyProgramPage() {
     programTypes,
     songs,
     teachingPoints,
-    lastAssignedAsMemberMap,
-    lastAssignedAsPartnerMap,
-    lastTeachingAssignmentAsMemberMap,
-    lastTeachingAssignmentAsPartnerMap,
-    pairingMap,
+    historyRows,
     loading: appDataLoading,
     error: appDataError,
     refetchHistory,
@@ -161,6 +157,28 @@ export function WeeklyProgramPage() {
   useEffect(() => {
     if (selectedDate) loadWeek(selectedDate)
   }, [selectedDate, loadWeek])
+
+  // 候補者の前回/今後日付・ペア履歴は、表示中の週の日付を基準に都度計算する
+  // (先の週まで入力済みの場合に、未来の日付を「前回」と誤表示しないため)
+  const referenceDate = selectedDate ?? todayStr()
+
+  const lastAssignedAsMemberMap = useMemo(
+    () => buildLastAssignedMap(historyRows, 'member', referenceDate),
+    [historyRows, referenceDate],
+  )
+  const lastAssignedAsPartnerMap = useMemo(
+    () => buildLastAssignedMap(historyRows, 'partner', referenceDate),
+    [historyRows, referenceDate],
+  )
+  const lastTeachingAssignmentAsMemberMap = useMemo(
+    () => buildLastTeachingAssignmentMap(historyRows, 'member', referenceDate),
+    [historyRows, referenceDate],
+  )
+  const lastTeachingAssignmentAsPartnerMap = useMemo(
+    () => buildLastTeachingAssignmentMap(historyRows, 'partner', referenceDate),
+    [historyRows, referenceDate],
+  )
+  const pairingMap = useMemo(() => buildPairingMap(historyRows, referenceDate), [historyRows, referenceDate])
 
   const nearbyDates = useMemo(() => {
     if (!selectedDate) return { prev1: null, next1: null, prev2: null, next2: null }
@@ -571,6 +589,7 @@ export function WeeklyProgramPage() {
         members,
         programType: openingType,
         lastAssignedMap: lastAssignedAsMemberMap,
+        referenceDate,
         duplicateMemberIds: openingProgram ? duplicateSetFor(openingProgram.id, 'member_id') : new Set(),
       })
     : []
@@ -633,6 +652,7 @@ export function WeeklyProgramPage() {
             <AssignmentCell
               currentMember={chairman}
               candidates={chairmanCandidates}
+              referenceDate={referenceDate}
               saving={savingChairman}
               placeholder="未選択"
               onAssign={handleAssignChairman}
@@ -813,6 +833,7 @@ export function WeeklyProgramPage() {
                     members,
                     programType,
                     lastAssignedMap: lastAssignedAsMemberMap,
+                    referenceDate,
                     duplicateMemberIds: memberDuplicateSet,
                     // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
                     // 「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
@@ -832,6 +853,7 @@ export function WeeklyProgramPage() {
                       programType: partnerProgramType,
                       // ペアとしての直近担当日のみを見る(担当者としての履歴は混在させない)
                       lastAssignedMap: lastAssignedAsPartnerMap,
+                      referenceDate,
                       duplicateMemberIds: partnerDuplicateSet,
                       requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
                       // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
@@ -858,6 +880,7 @@ export function WeeklyProgramPage() {
                       <AssignmentCell
                         currentMember={assignment?.member}
                         candidates={memberCandidates}
+                        referenceDate={referenceDate}
                         saving={saving}
                         isDuplicateToday={!!assignment?.member && memberDuplicateSet.has(assignment.member.id)}
                         nearOneWeek={!!assignment?.member && oneWeekAwayIds.has(assignment.member.id)}
@@ -875,6 +898,7 @@ export function WeeklyProgramPage() {
                       <AssignmentCell
                         currentMember={assignment?.partner}
                         candidates={partnerCandidates}
+                        referenceDate={referenceDate}
                         saving={saving}
                         isDuplicateToday={!!assignment?.partner && partnerDuplicateSet.has(assignment.partner.id)}
                         nearOneWeek={!!assignment?.partner && oneWeekAwayIds.has(assignment.partner.id)}
