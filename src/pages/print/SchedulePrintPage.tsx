@@ -8,15 +8,21 @@ import {
   fetchRangeData,
   findChairmanName,
   formatDateHeading,
+  formatPrintedDate,
   sectionColor,
   type RangeData,
 } from '../../lib/printData'
 
-function formatMonthLabel(monthStr: string | undefined): string {
-  if (!monthStr) return ''
-  const [y, m] = monthStr.split('-').map(Number)
-  if (!y || !m) return ''
-  return `${y}年${m}月`
+function formatTitle(monthStr: string | undefined): string {
+  if (!monthStr) return 'クリスチャンとしての生活と奉仕'
+  const [, m] = monthStr.split('-').map(Number)
+  if (!m) return 'クリスチャンとしての生活と奉仕'
+  return `クリスチャンとしての生活と奉仕―${m}月`
+}
+
+/** 「1．」のような先頭の番号が付いているか */
+function hasLeadingNumber(title: string): boolean {
+  return /^\d+[．.]/.test(title)
 }
 
 export function SchedulePrintPage() {
@@ -43,8 +49,8 @@ export function SchedulePrintPage() {
       <PrintToolbar backTo="/reports" />
       <div className="print-sheet schedule-sheet">
         <div className="schedule-title-row">
-          <h1>クリスチャンとしての生活と奉仕の集会 ー 予定表</h1>
-          <span className="schedule-month">{formatMonthLabel(month)}</span>
+          <h1>{formatTitle(month)}</h1>
+          <span className="schedule-printed-date">{formatPrintedDate(new Date())}</span>
         </div>
         {data.dates.map((date) => {
           const allItems = data.programsByDate.get(date) ?? []
@@ -65,13 +71,18 @@ export function SchedulePrintPage() {
               {visibleItems.map(({ item, endMin }) => {
                 const assignment = data.assignmentByProgramId.get(item.id)
                 const song = item.song_id ? songs.find((s) => s.id === item.song_id) : undefined
+                const titleText = item.title ?? item.program_types?.name ?? ''
                 return (
                   <div
                     className="schedule-row"
                     key={item.id}
                     style={{ borderLeftColor: sectionColor(item.section) }}
                   >
-                    <span className="schedule-col-title">{item.title ?? item.program_types?.name}</span>
+                    <span
+                      className={`schedule-col-title${hasLeadingNumber(titleText) ? '' : ' schedule-col-title-unnumbered'}`}
+                    >
+                      {titleText}
+                    </span>
                     <span className="schedule-col-song">{song ? `${song.number}番` : ''}</span>
                     <span className="schedule-col-duration">
                       {item.duration_minutes ? `${item.duration_minutes}分` : ''}

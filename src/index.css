@@ -1015,13 +1015,12 @@ input {
 }
 
 .schedule-title-row h1 {
-  font-size: 15px;
+  font-size: 14pt;
   margin: 0;
 }
 
-.schedule-month {
-  font-size: 13px;
-  font-weight: 700;
+.schedule-printed-date {
+  font-size: 11px;
   color: #333;
   white-space: nowrap;
 }
@@ -1049,7 +1048,7 @@ input {
   column-gap: 6px;
   padding: 1.5px 8px;
   border-bottom: 1px solid #eee;
-  border-left: 4px solid transparent;
+  border-left: 8px solid transparent;
   font-size: 10px;
   line-height: 1.35;
 }
@@ -1061,6 +1060,10 @@ input {
 
 .schedule-col-title {
   white-space: normal;
+}
+
+.schedule-col-title-unnumbered {
+  padding-left: 1.54em;
 }
 
 .schedule-col-song,
@@ -1139,10 +1142,17 @@ input {
 }
 
 .assignments-week-header td {
-  background: #6b3bff;
+  background: #6c3093;
   color: #fff;
   font-weight: 700;
   padding: 3px 8px;
+}
+
+.assignments-printed-date {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #333;
+  text-align: right;
 }
 
 @media print {

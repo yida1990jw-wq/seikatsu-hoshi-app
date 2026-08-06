@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useAppData } from '../../context/AppDataContext'
 import { PrintToolbar } from '../../components/PrintToolbar'
 import { memberDisplayName } from '../../lib/candidates'
-import { fetchRangeData, findChairmanName, formatDateHeading, type RangeData } from '../../lib/printData'
+import { fetchRangeData, findChairmanName, formatDateHeading, formatPrintedDate, type RangeData } from '../../lib/printData'
 
 export function AssignmentsRangePrintPage() {
   const { from, to } = useParams<{ from: string; to: string }>()
@@ -87,6 +87,7 @@ export function AssignmentsRangePrintPage() {
             })()}
           </tbody>
         </table>
+        <div className="assignments-printed-date">{formatPrintedDate()}</div>
       </div>
     </div>
   )

@@ -61,6 +61,11 @@ export function formatDateHeading(dateStr: string): string {
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 }
 
+/** 帳票の「出力日」表記(例: 2026年8月6日) */
+export function formatPrintedDate(d: Date = new Date()): string {
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+
 /** 開会・閉会は帯なし(透明)。それ以外は司会進行用紙の配色に合わせる */
 const SECTION_COLORS: Record<string, string> = {
   神の言葉の宝: '#707070',
