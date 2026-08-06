@@ -50,6 +50,11 @@ function formatDateLabel(dateStr: string): string {
   return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
 }
 
+function formatShortDate(dateStr: string): string {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })
+}
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -167,35 +172,39 @@ export function WeeklyProgramPage() {
     }
   }, [availableDates, selectedDate])
 
-  const [prev1Ids, setPrev1Ids] = useState<Set<string>>(new Set())
-  const [next1Ids, setNext1Ids] = useState<Set<string>>(new Set())
-  const [prev2Ids, setPrev2Ids] = useState<Set<string>>(new Set())
-  const [next2Ids, setNext2Ids] = useState<Set<string>>(new Set())
+  const [prev1Map, setPrev1Map] = useState<Map<string, string[]>>(new Map())
+  const [next1Map, setNext1Map] = useState<Map<string, string[]>>(new Map())
+  const [prev2Map, setPrev2Map] = useState<Map<string, string[]>>(new Map())
+  const [next2Map, setNext2Map] = useState<Map<string, string[]>>(new Map())
 
   useEffect(() => {
     const { prev1, next1, prev2, next2 } = nearbyDates
     const allDates = [prev1, next1, prev2, next2].filter((d): d is string => !!d)
 
     if (allDates.length === 0) {
-      setPrev1Ids(new Set())
-      setNext1Ids(new Set())
-      setPrev2Ids(new Set())
-      setNext2Ids(new Set())
+      setPrev1Map(new Map())
+      setNext1Map(new Map())
+      setPrev2Map(new Map())
+      setNext2Map(new Map())
       return
     }
 
     let cancelled = false
     async function loadNearby() {
-      const { data: progRows, error: progError } = await supabase.from('programs').select('id, date').in('date', allDates)
+      const { data: progRows, error: progError } = await supabase
+        .from('programs')
+        .select('id, date, title, program_types(name)')
+        .in('date', allDates)
+        .returns<{ id: string; date: string; title: string | null; program_types: ProgramType | ProgramType[] | null }[]>()
       if (progError || !progRows || cancelled) return
 
       const programIds = progRows.map((p) => p.id)
       if (programIds.length === 0) {
         if (!cancelled) {
-          setPrev1Ids(new Set())
-          setNext1Ids(new Set())
-          setPrev2Ids(new Set())
-          setNext2Ids(new Set())
+          setPrev1Map(new Map())
+          setNext1Map(new Map())
+          setPrev2Map(new Map())
+          setNext2Map(new Map())
         }
         return
       }
@@ -206,20 +215,36 @@ export function WeeklyProgramPage() {
         .in('program_id', programIds)
       if (asgError || !asgRows || cancelled) return
 
-      const dateByProgramId = new Map(progRows.map((p) => [p.id, p.date]))
-      const sets = { prev1: new Set<string>(), next1: new Set<string>(), prev2: new Set<string>(), next2: new Set<string>() }
+      const infoByProgramId = new Map(
+        progRows.map((p) => {
+          const pt = Array.isArray(p.program_types) ? p.program_types[0] : p.program_types
+          return [p.id, { date: p.date, label: p.title ?? pt?.name ?? 'プログラム' }]
+        }),
+      )
+      const maps = {
+        prev1: new Map<string, string[]>(),
+        next1: new Map<string, string[]>(),
+        prev2: new Map<string, string[]>(),
+        next2: new Map<string, string[]>(),
+      }
       for (const row of asgRows) {
-        const date = dateByProgramId.get(row.program_id)
-        const target = date === prev1 ? sets.prev1 : date === next1 ? sets.next1 : date === prev2 ? sets.prev2 : date === next2 ? sets.next2 : null
+        const info = infoByProgramId.get(row.program_id)
+        if (!info) continue
+        const target =
+          info.date === prev1 ? maps.prev1 : info.date === next1 ? maps.next1 : info.date === prev2 ? maps.prev2 : info.date === next2 ? maps.next2 : null
         if (!target) continue
-        if (row.member_id) target.add(row.member_id)
-        if (row.partner_id) target.add(row.partner_id)
+        for (const memberId of [row.member_id, row.partner_id]) {
+          if (!memberId) continue
+          const labels = target.get(memberId) ?? []
+          labels.push(info.label)
+          target.set(memberId, labels)
+        }
       }
       if (!cancelled) {
-        setPrev1Ids(sets.prev1)
-        setNext1Ids(sets.next1)
-        setPrev2Ids(sets.prev2)
-        setNext2Ids(sets.next2)
+        setPrev1Map(maps.prev1)
+        setNext1Map(maps.next1)
+        setPrev2Map(maps.prev2)
+        setNext2Map(maps.next2)
       }
     }
     loadNearby()
@@ -231,16 +256,37 @@ export function WeeklyProgramPage() {
   function getProximityLabel(memberId: string | undefined | null): string | undefined {
     if (!memberId) return undefined
     const parts: string[] = []
-    if (prev1Ids.has(memberId)) parts.push('-1')
-    if (next1Ids.has(memberId)) parts.push('1')
+    if (prev1Map.has(memberId)) parts.push('-1')
+    if (next1Map.has(memberId)) parts.push('1')
     if (parts.length > 0) return parts.join(',')
-    if (prev2Ids.has(memberId)) parts.push('-2')
-    if (next2Ids.has(memberId)) parts.push('2')
+    if (prev2Map.has(memberId)) parts.push('-2')
+    if (next2Map.has(memberId)) parts.push('2')
     return parts.length > 0 ? parts.join(',') : undefined
   }
 
-  const oneWeekAwayIds = useMemo(() => new Set([...prev1Ids, ...next1Ids]), [prev1Ids, next1Ids])
-  const twoWeeksAwayIds = useMemo(() => new Set([...prev2Ids, ...next2Ids]), [prev2Ids, next2Ids])
+  function getProximityTooltip(memberId: string | undefined | null): string | undefined {
+    if (!memberId) return undefined
+    const oneWeekParts: string[] = []
+    if (nearbyDates.prev1 && prev1Map.has(memberId)) {
+      oneWeekParts.push(`${formatShortDate(nearbyDates.prev1)}: ${prev1Map.get(memberId)!.join('、')}`)
+    }
+    if (nearbyDates.next1 && next1Map.has(memberId)) {
+      oneWeekParts.push(`${formatShortDate(nearbyDates.next1)}: ${next1Map.get(memberId)!.join('、')}`)
+    }
+    if (oneWeekParts.length > 0) return oneWeekParts.join('\n')
+
+    const twoWeekParts: string[] = []
+    if (nearbyDates.prev2 && prev2Map.has(memberId)) {
+      twoWeekParts.push(`${formatShortDate(nearbyDates.prev2)}: ${prev2Map.get(memberId)!.join('、')}`)
+    }
+    if (nearbyDates.next2 && next2Map.has(memberId)) {
+      twoWeekParts.push(`${formatShortDate(nearbyDates.next2)}: ${next2Map.get(memberId)!.join('、')}`)
+    }
+    return twoWeekParts.length > 0 ? twoWeekParts.join('\n') : undefined
+  }
+
+  const oneWeekAwayIds = useMemo(() => new Set([...prev1Map.keys(), ...next1Map.keys()]), [prev1Map, next1Map])
+  const twoWeeksAwayIds = useMemo(() => new Set([...prev2Map.keys(), ...next2Map.keys()]), [prev2Map, next2Map])
 
   function goPrev() {
     if (!selectedDate) return
@@ -809,6 +855,7 @@ export function WeeklyProgramPage() {
                         nearOneWeek={!!assignment?.member && oneWeekAwayIds.has(assignment.member.id)}
                         nearTwoWeeks={!!assignment?.member && twoWeeksAwayIds.has(assignment.member.id)}
                         proximityLabel={getProximityLabel(assignment?.member?.id)}
+                        proximityTooltip={getProximityTooltip(assignment?.member?.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { member_id: memberId })}
                       />
                     ) : (
@@ -825,6 +872,7 @@ export function WeeklyProgramPage() {
                         nearOneWeek={!!assignment?.partner && oneWeekAwayIds.has(assignment.partner.id)}
                         nearTwoWeeks={!!assignment?.partner && twoWeeksAwayIds.has(assignment.partner.id)}
                         proximityLabel={getProximityLabel(assignment?.partner?.id)}
+                        proximityTooltip={getProximityTooltip(assignment?.partner?.id)}
                         onAssign={(memberId) => upsertAssignment(program.id, { partner_id: memberId })}
                       />
                     ) : (

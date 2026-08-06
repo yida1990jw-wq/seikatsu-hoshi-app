@@ -14,6 +14,7 @@ interface AssignmentCellProps {
   nearOneWeek?: boolean
   nearTwoWeeks?: boolean
   proximityLabel?: string
+  proximityTooltip?: string
 }
 
 export function AssignmentCell({
@@ -26,6 +27,7 @@ export function AssignmentCell({
   nearOneWeek,
   nearTwoWeeks,
   proximityLabel,
+  proximityTooltip,
 }: AssignmentCellProps) {
   const [open, setOpen] = useState(false)
 
@@ -53,8 +55,9 @@ export function AssignmentCell({
           ? 'assignment-near-2w'
           : ''
 
-  // ラベルは色帯と同じ優先度でのみ表示する(同日重複の時は表示しない)
-  const showLabel = !isDuplicateToday && (nearOneWeek || nearTwoWeeks) && !!proximityLabel
+  // ラベル・ツールチップは色帯と同じ優先度でのみ表示する(同日重複の時は表示しない)
+  const showProximity = !isDuplicateToday && (nearOneWeek || nearTwoWeeks)
+  const showLabel = showProximity && !!proximityLabel
 
   return (
     <button
@@ -62,6 +65,7 @@ export function AssignmentCell({
       className={`assignment-value ${currentMember ? '' : 'assignment-empty'} ${proximityClass}`}
       onClick={() => setOpen(true)}
       disabled={saving}
+      title={showProximity ? proximityTooltip : undefined}
     >
       {saving
         ? '保存中...'
