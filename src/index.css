@@ -881,6 +881,12 @@ input {
   text-align: center;
 }
 
+@media print {
+  .counselor-title {
+    margin: 0 0 12px;
+  }
+}
+
 .counselor-date {
   text-align: center;
   font-size: 14px;
