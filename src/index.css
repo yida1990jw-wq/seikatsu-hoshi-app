@@ -129,6 +129,37 @@ input {
   max-width: 320px;
 }
 
+.members-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.members-filter-bar .crud-search {
+  margin-bottom: 0;
+  max-width: 240px;
+}
+
+.members-filter-bar select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.members-filter-clear {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .crud-table {
   width: 100%;
   border-collapse: collapse;

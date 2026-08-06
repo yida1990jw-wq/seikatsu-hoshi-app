@@ -55,6 +55,9 @@ function draftToPatch(d: MemberDraft) {
 export function MembersPage() {
   const { members, refetchAll } = useAppData()
   const [query, setQuery] = useState('')
+  const [genderFilter, setGenderFilter] = useState('')
+  const [positionFilter, setPositionFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<MemberDraft>(EMPTY_DRAFT)
   const [newDraft, setNewDraft] = useState<MemberDraft>(EMPTY_DRAFT)
@@ -62,9 +65,12 @@ export function MembersPage() {
 
   const visibleMembers = useMemo(() => {
     const q = query.trim()
-    if (!q) return members
-    return members.filter((m) => `${m.last_name}${m.first_name}${m.last_name_kana ?? ''}${m.first_name_kana ?? ''}`.includes(q))
-  }, [members, query])
+    return members
+      .filter((m) => !q || `${m.last_name}${m.first_name}${m.last_name_kana ?? ''}${m.first_name_kana ?? ''}`.includes(q))
+      .filter((m) => !genderFilter || m.gender === genderFilter)
+      .filter((m) => !positionFilter || m.position === positionFilter)
+      .filter((m) => !statusFilter || m.status === statusFilter)
+  }, [members, query, genderFilter, positionFilter, statusFilter])
 
   function startEdit(member: Member) {
     setEditingId(member.id)
@@ -142,13 +148,52 @@ export function MembersPage() {
   return (
     <div className="page">
       <h1>名簿</h1>
-      <input
-        className="crud-search"
-        type="text"
-        placeholder="名前で検索..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="members-filter-bar">
+        <input
+          className="crud-search"
+          type="text"
+          placeholder="名前で検索..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <select value={genderFilter} onChange={(e) => setGenderFilter(e.target.value)}>
+          <option value="">性別: すべて</option>
+          {GENDERS.map((g) => (
+            <option key={g} value={g}>
+              {g}
+            </option>
+          ))}
+        </select>
+        <select value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)}>
+          <option value="">立場: すべて</option>
+          {POSITIONS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">状況: すべて</option>
+          {MEMBER_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        {(genderFilter || positionFilter || statusFilter) && (
+          <button
+            type="button"
+            className="members-filter-clear"
+            onClick={() => {
+              setGenderFilter('')
+              setPositionFilter('')
+              setStatusFilter('')
+            }}
+          >
+            絞り込み解除
+          </button>
+        )}
+      </div>
       {error && <p className="error-text">{error}</p>}
       <table className="crud-table">
         <thead>
