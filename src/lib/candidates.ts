@@ -16,7 +16,11 @@ export interface AssignmentHistoryRow {
 /** memberId -> (programTypeId -> 直近の担当日) */
 export type LastAssignedMap = Map<string, Map<string, string>>
 
-export function buildLastAssignedMap(rows: AssignmentHistoryRow[]): LastAssignedMap {
+/**
+ * 役割(担当者/ペア)ごとの直近担当日マップを作る。担当者としての履歴とペアとしての履歴を
+ * 混在させないよう、role で明示的に片方だけを集計する。
+ */
+export function buildLastAssignedMap(rows: AssignmentHistoryRow[], role: 'member' | 'partner'): LastAssignedMap {
   const map: LastAssignedMap = new Map()
 
   function record(memberId: string | null, typeId: string | null, date: string) {
@@ -34,8 +38,11 @@ export function buildLastAssignedMap(rows: AssignmentHistoryRow[]): LastAssigned
 
   for (const row of rows) {
     if (!row.program_date) continue
-    record(row.member_id, row.program_type_id, row.program_date)
-    record(row.partner_id, row.partner_program_type_id ?? row.program_type_id, row.program_date)
+    if (role === 'member') {
+      record(row.member_id, row.program_type_id, row.program_date)
+    } else {
+      record(row.partner_id, row.partner_program_type_id ?? row.program_type_id, row.program_date)
+    }
   }
 
   return map
@@ -49,53 +56,74 @@ export interface LastTeachingAssignment {
 /** memberId -> 課題(教励課題)付きプログラムに最後に割り当てられた日付と種別名(会話を始める等) */
 export type LastTeachingAssignmentMap = Map<string, LastTeachingAssignment>
 
-export function buildLastTeachingAssignmentMap(rows: AssignmentHistoryRow[]): LastTeachingAssignmentMap {
+/** buildLastAssignedMap と同様、担当者としての課題履歴とペアとしての課題履歴を混在させない */
+export function buildLastTeachingAssignmentMap(
+  rows: AssignmentHistoryRow[],
+  role: 'member' | 'partner',
+): LastTeachingAssignmentMap {
   const map: LastTeachingAssignmentMap = new Map()
 
-  function record(memberId: string | null) {
-    if (!memberId) return
-    const row = current
-    if (!row.program_date || !row.program_type_name) return
+  for (const row of rows) {
+    if (!row.has_teaching_point || !row.program_date || !row.program_type_name) continue
+    const memberId = role === 'member' ? row.member_id : row.partner_id
+    if (!memberId) continue
     const existing = map.get(memberId)
     if (!existing || row.program_date > existing.date) {
       map.set(memberId, { date: row.program_date, typeName: row.program_type_name })
     }
   }
 
-  let current: AssignmentHistoryRow
-  for (const row of rows) {
-    if (!row.has_teaching_point) continue
-    current = row
-    record(row.member_id)
-    record(row.partner_id)
+  return map
+}
+
+/** memberId -> 過去にペアを組んだ相手memberIdの時系列リスト(古い順、役割は問わない) */
+export type PairingMap = Map<string, string[]>
+
+/**
+ * 教励課題付き(実演系)プログラムでのペア実績のみを対象にする。会衆の聖書研究の
+ * 担当者/朗読者のような、実演ではないペアはここに含めない。
+ */
+export function buildPairingMap(rows: AssignmentHistoryRow[]): PairingMap {
+  const sorted = rows
+    .filter(
+      (r): r is AssignmentHistoryRow & { program_date: string; member_id: string; partner_id: string } =>
+        Boolean(r.has_teaching_point && r.program_date && r.member_id && r.partner_id),
+    )
+    .sort((a, b) => (a.program_date < b.program_date ? -1 : a.program_date > b.program_date ? 1 : 0))
+
+  const map: PairingMap = new Map()
+
+  function append(a: string, b: string) {
+    const list = map.get(a)
+    if (list) list.push(b)
+    else map.set(a, [b])
+  }
+
+  for (const row of sorted) {
+    append(row.member_id, row.partner_id)
+    append(row.partner_id, row.member_id)
   }
 
   return map
 }
 
-/** memberId -> 過去にペアを組んだことがある相手memberIdの集合 */
-export type PairingMap = Map<string, Set<string>>
+/**
+ * 指定した担当者について、現在の候補者プール内で「今の周」で既にペアを組んだ相手のidを返す。
+ * 候補者全員と組み終えたら1周とみなしリセットする(名簿変更でプールが変わればやり直しになる)。
+ */
+export function getCurrentRoundPairedIds(history: string[] | undefined, eligibleIds: Set<string>): Set<string> {
+  let covered = new Set<string>()
+  if (!history || eligibleIds.size === 0) return covered
 
-export function buildPairingMap(rows: AssignmentHistoryRow[]): PairingMap {
-  const map: PairingMap = new Map()
-
-  function link(a: string, b: string) {
-    let set = map.get(a)
-    if (!set) {
-      set = new Set()
-      map.set(a, set)
-    }
-    set.add(b)
-  }
-
-  for (const row of rows) {
-    if (row.member_id && row.partner_id) {
-      link(row.member_id, row.partner_id)
-      link(row.partner_id, row.member_id)
+  for (const partnerId of history) {
+    if (!eligibleIds.has(partnerId)) continue
+    covered.add(partnerId)
+    if (covered.size >= eligibleIds.size) {
+      covered = new Set()
     }
   }
 
-  return map
+  return covered
 }
 
 export interface Candidate {
@@ -119,7 +147,7 @@ interface GetCandidatesParams {
   requiredGender?: Member['gender']
   /** 指定時、直近の担当履歴をこのプログラム種別に限定せず、課題付きプログラム全体から探す(ペア選定用) */
   broadRecencyMap?: LastTeachingAssignmentMap
-  /** ペアの優先順位付け用: 現在の主担当者id。過去にこの人とペアだった候補は優先度を下げる(除外はしない) */
+  /** ペアの優先順位付け用: 現在の主担当者id。候補者全員と一巡するまでの間に既にペアだった候補は優先度を下げる(除外はしない) */
   pairingMap?: PairingMap
   currentMemberId?: string | null
 }
@@ -141,7 +169,7 @@ export function getEligibleCandidates({
   const requiredPositions = programType.required_position ?? []
   const requiredQualification = programType.required_qualification
 
-  const candidates = members
+  const eligibleMembers = members
     .filter((m) => m.status === '現役')
     .filter((m) => requiredPositions.length === 0 || requiredPositions.includes(m.position))
     .filter((m) => !programType.required_gender || m.gender === programType.required_gender)
@@ -150,16 +178,22 @@ export function getEligibleCandidates({
       (m) =>
         !requiredQualification || (m.qualifications ?? []).includes(requiredQualification),
     )
-    .map((member) => {
-      const broad = broadRecencyMap?.get(member.id)
-      return {
-        member,
-        lastAssignedDate: broad ? broad.date : (lastAssignedMap.get(member.id)?.get(programType.id) ?? null),
-        lastAssignedType: broad ? broad.typeName : null,
-        isDuplicateToday: duplicateMemberIds?.has(member.id) ?? false,
-        previouslyPaired: currentMemberId ? (pairingMap?.get(member.id)?.has(currentMemberId) ?? false) : false,
-      }
-    })
+
+  const eligibleIds = new Set(eligibleMembers.map((m) => m.id))
+  const currentRoundPaired = currentMemberId
+    ? getCurrentRoundPairedIds(pairingMap?.get(currentMemberId), eligibleIds)
+    : new Set<string>()
+
+  const candidates = eligibleMembers.map((member) => {
+    const broad = broadRecencyMap?.get(member.id)
+    return {
+      member,
+      lastAssignedDate: broad ? broad.date : (lastAssignedMap.get(member.id)?.get(programType.id) ?? null),
+      lastAssignedType: broad ? broad.typeName : null,
+      isDuplicateToday: duplicateMemberIds?.has(member.id) ?? false,
+      previouslyPaired: currentRoundPaired.has(member.id),
+    }
+  })
 
   candidates.sort((a, b) => {
     if (a.isDuplicateToday !== b.isDuplicateToday) return a.isDuplicateToday ? 1 : -1

@@ -68,8 +68,10 @@ export function WeeklyProgramPage() {
     programTypes,
     songs,
     teachingPoints,
-    lastAssignedMap,
-    lastTeachingAssignmentMap,
+    lastAssignedAsMemberMap,
+    lastAssignedAsPartnerMap,
+    lastTeachingAssignmentAsMemberMap,
+    lastTeachingAssignmentAsPartnerMap,
     pairingMap,
     loading: appDataLoading,
     error: appDataError,
@@ -568,7 +570,7 @@ export function WeeklyProgramPage() {
     ? getEligibleCandidates({
         members,
         programType: openingType,
-        lastAssignedMap,
+        lastAssignedMap: lastAssignedAsMemberMap,
         duplicateMemberIds: openingProgram ? duplicateSetFor(openingProgram.id, 'member_id') : new Set(),
       })
     : []
@@ -810,11 +812,12 @@ export function WeeklyProgramPage() {
                 ? getEligibleCandidates({
                     members,
                     programType,
-                    lastAssignedMap,
+                    lastAssignedMap: lastAssignedAsMemberMap,
                     duplicateMemberIds: memberDuplicateSet,
                     // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
-                    // 直近担当日を見る(特定の実演だけに偏らないようにするため)
-                    broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentMap : undefined,
+                    // 「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
+                    // ペアとしての履歴は混在させない)
+                    broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentAsMemberMap : undefined,
                   })
                 : []
 
@@ -827,10 +830,15 @@ export function WeeklyProgramPage() {
                   ? getEligibleCandidates({
                       members,
                       programType: partnerProgramType,
-                      lastAssignedMap,
+                      // ペアとしての直近担当日のみを見る(担当者としての履歴は混在させない)
+                      lastAssignedMap: lastAssignedAsPartnerMap,
                       duplicateMemberIds: partnerDuplicateSet,
                       requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
-                      // 課題付きプログラムのペアは、主担当と過去にペアだった人を優先度下げ(除外はしない)
+                      // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
+                      // 「ペアとしての」直近担当日を見る(会話を始める/再び話し合う等の種別をまたいで
+                      // 直近順に並べるため。担当者としての履歴は混在させない)
+                      broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentAsPartnerMap : undefined,
+                      // 課題付きプログラムのペアは、主担当と一巡するまでの間に既にペアだった人を優先度下げ(除外はしない)
                       pairingMap: program.teaching_point_id ? pairingMap : undefined,
                       currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,
                     })

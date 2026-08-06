@@ -22,8 +22,14 @@ interface AppDataContextValue {
   songs: Song[]
   teachingPoints: TeachingPoint[]
   settings: Record<string, string>
-  lastAssignedMap: LastAssignedMap
-  lastTeachingAssignmentMap: LastTeachingAssignmentMap
+  /** 担当者としての直近担当日(役割を混在させない) */
+  lastAssignedAsMemberMap: LastAssignedMap
+  /** ペアとしての直近担当日(役割を混在させない) */
+  lastAssignedAsPartnerMap: LastAssignedMap
+  /** 担当者としての課題付きプログラム全体での直近担当日 */
+  lastTeachingAssignmentAsMemberMap: LastTeachingAssignmentMap
+  /** ペアとしての課題付きプログラム全体での直近担当日 */
+  lastTeachingAssignmentAsPartnerMap: LastTeachingAssignmentMap
   pairingMap: PairingMap
   loading: boolean
   error: string | null
@@ -40,8 +46,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [songs, setSongs] = useState<Song[]>([])
   const [teachingPoints, setTeachingPoints] = useState<TeachingPoint[]>([])
   const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS)
-  const [lastAssignedMap, setLastAssignedMap] = useState<LastAssignedMap>(new Map())
-  const [lastTeachingAssignmentMap, setLastTeachingAssignmentMap] = useState<LastTeachingAssignmentMap>(new Map())
+  const [lastAssignedAsMemberMap, setLastAssignedAsMemberMap] = useState<LastAssignedMap>(new Map())
+  const [lastAssignedAsPartnerMap, setLastAssignedAsPartnerMap] = useState<LastAssignedMap>(new Map())
+  const [lastTeachingAssignmentAsMemberMap, setLastTeachingAssignmentAsMemberMap] = useState<LastTeachingAssignmentMap>(
+    new Map(),
+  )
+  const [lastTeachingAssignmentAsPartnerMap, setLastTeachingAssignmentAsPartnerMap] =
+    useState<LastTeachingAssignmentMap>(new Map())
   const [pairingMap, setPairingMap] = useState<PairingMap>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -73,8 +84,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    setLastAssignedMap(buildLastAssignedMap(rows))
-    setLastTeachingAssignmentMap(buildLastTeachingAssignmentMap(rows))
+    setLastAssignedAsMemberMap(buildLastAssignedMap(rows, 'member'))
+    setLastAssignedAsPartnerMap(buildLastAssignedMap(rows, 'partner'))
+    setLastTeachingAssignmentAsMemberMap(buildLastTeachingAssignmentMap(rows, 'member'))
+    setLastTeachingAssignmentAsPartnerMap(buildLastTeachingAssignmentMap(rows, 'partner'))
     setPairingMap(buildPairingMap(rows))
   }, [])
 
@@ -131,8 +144,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         songs,
         teachingPoints,
         settings,
-        lastAssignedMap,
-        lastTeachingAssignmentMap,
+        lastAssignedAsMemberMap,
+        lastAssignedAsPartnerMap,
+        lastTeachingAssignmentAsMemberMap,
+        lastTeachingAssignmentAsPartnerMap,
         pairingMap,
         loading,
         error,
