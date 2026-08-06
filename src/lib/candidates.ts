@@ -66,19 +66,20 @@ export interface LastTeachingAssignment {
   typeName: string
 }
 
-/** memberId -> 課題(教励課題)付きプログラムのうち基準日に最も近い担当日と種別名(会話を始める等) */
+/** memberId -> 「候補プール」内で基準日に最も近い担当日とラベル(プログラムタイトル優先) */
 export type LastTeachingAssignmentMap = Map<string, LastTeachingAssignment>
 
 /** プールキー(recency_pool、無ければ種別id自身) -> LastTeachingAssignmentMap */
 export type LastTeachingAssignmentMapsByPool = Map<string, LastTeachingAssignmentMap>
 
 /**
- * 課題(教励課題)付きプログラムの直近担当日を、種別ごとではなく「候補プール」単位で集計する。
+ * 直近担当日を、種別ごとではなく「候補プール」単位で集計する。
  * 例えば「会話を始める」「再び話し合う」等をまとめて「実演」プールとして回したい場合、
  * program_types.recency_pool に同じ値("実演")を設定しておくと、それらの種別間で
  * 直近担当日が共有される(=どの実演をやっても同じプールの「最近やった」扱いになる)。
+ * 教励課題の有無は問わない(討議のように課題を伴わない種別同士のプールも成立する)。
  * recency_pool が空の種別は、その種別id自身をプールキーとして扱う(=他種別とは混ざらない)。
- * buildLastAssignedMap と同様、担当者としての課題履歴とペアとしての課題履歴を混在させない。
+ * buildLastAssignedMap と同様、担当者としての履歴とペアとしての履歴を混在させない。
  */
 export function buildLastTeachingAssignmentMapsByPool(
   rows: AssignmentHistoryRow[],
@@ -89,7 +90,7 @@ export function buildLastTeachingAssignmentMapsByPool(
   const result: LastTeachingAssignmentMapsByPool = new Map()
 
   for (const row of rows) {
-    if (!row.has_teaching_point || !row.program_date || !row.program_type_name) continue
+    if (!row.program_date || !row.program_type_name) continue
     const memberId = role === 'member' ? row.member_id : row.partner_id
     if (!memberId) continue
     const typeId = role === 'member' ? row.program_type_id : (row.partner_program_type_id ?? row.program_type_id)

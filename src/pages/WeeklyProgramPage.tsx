@@ -850,11 +850,11 @@ export function WeeklyProgramPage() {
                     lastAssignedMap: lastAssignedAsMemberMap,
                     referenceDate,
                     duplicateMemberIds: memberDuplicateSet,
-                    // 課題(教励課題)付きプログラムは、この種別に限らず同じ候補プール(recency_pool)
-                    // 全体での「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
-                    // ペアとしての履歴は混在させない)
+                    // 候補プール(recency_pool)が設定された種別は、この種別に限らずプール全体での
+                    // 「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
+                    // ペアとしての履歴は混在させない)。教励課題の有無は問わない。
                     broadRecencyMap:
-                      program.teaching_point_id && memberPoolKey
+                      programType.recency_pool && memberPoolKey
                         ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
                         : undefined,
                   })
@@ -878,11 +878,11 @@ export function WeeklyProgramPage() {
                       referenceDate,
                       duplicateMemberIds: partnerDuplicateSet,
                       requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
-                      // 課題(教励課題)付きプログラムは、この種別に限らず同じ候補プール(recency_pool)
-                      // 全体での「ペアとしての」直近担当日を見る(会話を始める/再び話し合う等の種別を
-                      // またいで直近順に並べるため。担当者としての履歴は混在させない)
+                      // 候補プール(recency_pool)が設定された種別は、この種別に限らずプール全体での
+                      // 「ペアとしての」直近担当日を見る(会話を始める/再び話し合う等の種別をまたいで
+                      // 直近順に並べるため。担当者としての履歴は混在させない)。教励課題の有無は問わない。
                       broadRecencyMap:
-                        program.teaching_point_id && partnerPoolKey
+                        partnerProgramType.recency_pool && partnerPoolKey
                           ? lastTeachingAssignmentAsPartnerMapsByPool.get(partnerPoolKey)
                           : undefined,
                       // 課題付きプログラムのペアは、主担当と一巡するまでの間に既にペアだった人を優先度下げ(除外はしない)
