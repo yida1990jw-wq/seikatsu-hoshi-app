@@ -115,7 +115,11 @@ export function buildLastTeachingAssignmentMapsByPool(
   return result
 }
 
-/** memberId -> 過去にペアを組んだ相手memberIdの時系列リスト(古い順、役割は問わない) */
+/**
+ * memberId(担当者として)-> その時のペア相手idの時系列リスト(古い順)。
+ * 「Aが担当者・Bがペア」と「Bが担当者・Aがペア」は別の組み合わせとして扱うため、
+ * 担当者側の視点のみを記録する(逆方向には記録しない)。
+ */
 export type PairingMap = Map<string, string[]>
 
 /**
@@ -141,7 +145,6 @@ export function buildPairingMap(rows: AssignmentHistoryRow[], referenceDate: str
 
   for (const row of sorted) {
     append(row.member_id, row.partner_id)
-    append(row.partner_id, row.member_id)
   }
 
   return map
