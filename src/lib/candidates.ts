@@ -240,7 +240,11 @@ export function getEligibleCandidates({
   })
 
   // 基準日からの距離(絶対値)が遠いほど優先(=未実施は最優先、直近ほど後回し)。過去/未来は区別しない。
+  // 巡回監督は選択自体は可能だが、他のどの条件よりも優先して常に一覧の末尾に留める。
   candidates.sort((a, b) => {
+    const overseerA = a.member.position === '巡回監督'
+    const overseerB = b.member.position === '巡回監督'
+    if (overseerA !== overseerB) return overseerA ? 1 : -1
     if (a.isDuplicateToday !== b.isDuplicateToday) return a.isDuplicateToday ? 1 : -1
     if (a.previouslyPaired !== b.previouslyPaired) return a.previouslyPaired ? 1 : -1
     if (a.lastAssignedDate === b.lastAssignedDate) {
