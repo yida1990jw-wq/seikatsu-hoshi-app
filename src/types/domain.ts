@@ -21,6 +21,8 @@ export interface Member {
   position: Position
   status: MemberStatus
   qualifications: Qualification[] | null
+  /** このプログラム種別id一覧には担当者候補として絶対に挙げない(除外はせず優先度を下げる他の仕組みとは別) */
+  excluded_program_type_ids: string[] | null
   created_at: string
 }
 

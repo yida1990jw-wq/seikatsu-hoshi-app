@@ -12,6 +12,7 @@ interface MemberDraft {
   position: string
   status: string
   qualifications: Qualification[]
+  excluded_program_type_ids: string[]
 }
 
 const EMPTY_DRAFT: MemberDraft = {
@@ -23,6 +24,7 @@ const EMPTY_DRAFT: MemberDraft = {
   position: POSITIONS[2],
   status: MEMBER_STATUSES[0],
   qualifications: [],
+  excluded_program_type_ids: [],
 }
 
 function draftFromMember(m: Member): MemberDraft {
@@ -35,6 +37,7 @@ function draftFromMember(m: Member): MemberDraft {
     position: m.position,
     status: m.status,
     qualifications: m.qualifications ?? [],
+    excluded_program_type_ids: m.excluded_program_type_ids ?? [],
   }
 }
 
@@ -49,11 +52,12 @@ function draftToPatch(d: MemberDraft) {
     position: d.position,
     status: d.status,
     qualifications: d.qualifications,
+    excluded_program_type_ids: d.excluded_program_type_ids,
   }
 }
 
 export function MembersPage() {
-  const { members, refetchAll } = useAppData()
+  const { members, programTypes, refetchAll } = useAppData()
   const [query, setQuery] = useState('')
   const [genderFilter, setGenderFilter] = useState('')
   const [positionFilter, setPositionFilter] = useState('')
@@ -85,6 +89,10 @@ export function MembersPage() {
 
   function toggleQualification(list: Qualification[], q: Qualification): Qualification[] {
     return list.includes(q) ? list.filter((x) => x !== q) : [...list, q]
+  }
+
+  function toggleExcludedType(list: string[], typeId: string): string[] {
+    return list.includes(typeId) ? list.filter((x) => x !== typeId) : [...list, typeId]
   }
 
   async function handleSave() {
@@ -139,6 +147,23 @@ export function MembersPage() {
               onChange={() => onChange(toggleQualification(list, q))}
             />
             {q}
+          </label>
+        ))}
+      </div>
+    )
+  }
+
+  function renderExcludedTypeCheckboxes(list: string[], onChange: (next: string[]) => void) {
+    return (
+      <div className="crud-checkbox-group">
+        {programTypes.map((pt) => (
+          <label key={pt.id}>
+            <input
+              type="checkbox"
+              checked={list.includes(pt.id)}
+              onChange={() => onChange(toggleExcludedType(list, pt.id))}
+            />
+            {pt.name}
           </label>
         ))}
       </div>
@@ -206,6 +231,7 @@ export function MembersPage() {
             <th>立場</th>
             <th>状況</th>
             <th>特別承認</th>
+            <th>担当させない種別</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -263,6 +289,11 @@ export function MembersPage() {
                     setDraft((d) => ({ ...d, qualifications: next })),
                   )}
                 </td>
+                <td>
+                  {renderExcludedTypeCheckboxes(draft.excluded_program_type_ids, (next) =>
+                    setDraft((d) => ({ ...d, excluded_program_type_ids: next })),
+                  )}
+                </td>
                 <td className="row-actions">
                   <button type="button" onClick={handleSave}>
                     保存
@@ -282,6 +313,12 @@ export function MembersPage() {
                 <td>{member.position}</td>
                 <td>{member.status}</td>
                 <td>{(member.qualifications ?? []).join('、')}</td>
+                <td>
+                  {(member.excluded_program_type_ids ?? [])
+                    .map((id) => programTypes.find((pt) => pt.id === id)?.name)
+                    .filter(Boolean)
+                    .join('、')}
+                </td>
                 <td className="row-actions">
                   <button type="button" onClick={() => startEdit(member)}>
                     編集
@@ -352,6 +389,11 @@ export function MembersPage() {
             <td>
               {renderQualificationCheckboxes(newDraft.qualifications, (next) =>
                 setNewDraft((d) => ({ ...d, qualifications: next })),
+              )}
+            </td>
+            <td>
+              {renderExcludedTypeCheckboxes(newDraft.excluded_program_type_ids, (next) =>
+                setNewDraft((d) => ({ ...d, excluded_program_type_ids: next })),
               )}
             </td>
             <td className="row-actions">

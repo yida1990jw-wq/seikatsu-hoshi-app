@@ -225,6 +225,7 @@ export function getEligibleCandidates({
       (m) =>
         !requiredQualification || (m.qualifications ?? []).includes(requiredQualification),
     )
+    .filter((m) => !(m.excluded_program_type_ids ?? []).includes(programType.id))
 
   const eligibleIds = new Set(eligibleMembers.map((m) => m.id))
   const currentRoundPaired = currentMemberId
