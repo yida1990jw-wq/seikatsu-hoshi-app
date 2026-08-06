@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
-import { buildLastAssignedMap, buildLastTeachingAssignmentMap, buildPairingMap, getEligibleCandidates } from '../lib/candidates'
+import {
+  buildLastAssignedMap,
+  buildLastTeachingAssignmentMapsByPool,
+  buildPairingMap,
+  getEligibleCandidates,
+} from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
 import type { Assignment, Member, Program, ProgramType, Song, TeachingPoint, Venue } from '../types/domain'
@@ -170,13 +175,21 @@ export function WeeklyProgramPage() {
     () => buildLastAssignedMap(historyRows, 'partner', referenceDate),
     [historyRows, referenceDate],
   )
-  const lastTeachingAssignmentAsMemberMap = useMemo(
-    () => buildLastTeachingAssignmentMap(historyRows, 'member', referenceDate),
-    [historyRows, referenceDate],
+
+  // 種別id -> 候補プールキー(recency_pool未設定なら種別id自身をキーにする=他種別と混ざらない)
+  const poolKeyByTypeId = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const pt of programTypes) map.set(pt.id, pt.recency_pool || pt.id)
+    return map
+  }, [programTypes])
+
+  const lastTeachingAssignmentAsMemberMapsByPool = useMemo(
+    () => buildLastTeachingAssignmentMapsByPool(historyRows, 'member', referenceDate, poolKeyByTypeId),
+    [historyRows, referenceDate, poolKeyByTypeId],
   )
-  const lastTeachingAssignmentAsPartnerMap = useMemo(
-    () => buildLastTeachingAssignmentMap(historyRows, 'partner', referenceDate),
-    [historyRows, referenceDate],
+  const lastTeachingAssignmentAsPartnerMapsByPool = useMemo(
+    () => buildLastTeachingAssignmentMapsByPool(historyRows, 'partner', referenceDate, poolKeyByTypeId),
+    [historyRows, referenceDate, poolKeyByTypeId],
   )
   const pairingMap = useMemo(() => buildPairingMap(historyRows, referenceDate), [historyRows, referenceDate])
 
@@ -828,6 +841,8 @@ export function WeeklyProgramPage() {
                 ? duplicateSetFor(program.id, 'partner_id')
                 : new Set<string>()
 
+              const memberPoolKey = programType ? (poolKeyByTypeId.get(programType.id) ?? programType.id) : null
+
               const memberCandidates = programType
                 ? getEligibleCandidates({
                     members,
@@ -835,16 +850,23 @@ export function WeeklyProgramPage() {
                     lastAssignedMap: lastAssignedAsMemberMap,
                     referenceDate,
                     duplicateMemberIds: memberDuplicateSet,
-                    // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
-                    // 「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
+                    // 課題(教励課題)付きプログラムは、この種別に限らず同じ候補プール(recency_pool)
+                    // 全体での「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
                     // ペアとしての履歴は混在させない)
-                    broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentAsMemberMap : undefined,
+                    broadRecencyMap:
+                      program.teaching_point_id && memberPoolKey
+                        ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
+                        : undefined,
                   })
                 : []
 
               const partnerProgramType = programType?.partner_program_type_id
                 ? (programTypesById.get(programType.partner_program_type_id) ?? programType)
                 : programType
+
+              const partnerPoolKey = partnerProgramType
+                ? (poolKeyByTypeId.get(partnerProgramType.id) ?? partnerProgramType.id)
+                : null
 
               const partnerCandidates =
                 programType?.needs_partner && partnerProgramType
@@ -856,10 +878,13 @@ export function WeeklyProgramPage() {
                       referenceDate,
                       duplicateMemberIds: partnerDuplicateSet,
                       requiredGender: programType.partner_same_gender ? assignment?.member?.gender : undefined,
-                      // 課題(教励課題)付きプログラムは、この種別に限らず課題付きプログラム全体での
-                      // 「ペアとしての」直近担当日を見る(会話を始める/再び話し合う等の種別をまたいで
-                      // 直近順に並べるため。担当者としての履歴は混在させない)
-                      broadRecencyMap: program.teaching_point_id ? lastTeachingAssignmentAsPartnerMap : undefined,
+                      // 課題(教励課題)付きプログラムは、この種別に限らず同じ候補プール(recency_pool)
+                      // 全体での「ペアとしての」直近担当日を見る(会話を始める/再び話し合う等の種別を
+                      // またいで直近順に並べるため。担当者としての履歴は混在させない)
+                      broadRecencyMap:
+                        program.teaching_point_id && partnerPoolKey
+                          ? lastTeachingAssignmentAsPartnerMapsByPool.get(partnerPoolKey)
+                          : undefined,
                       // 課題付きプログラムのペアは、主担当と一巡するまでの間に既にペアだった人を優先度下げ(除外はしない)
                       pairingMap: program.teaching_point_id ? pairingMap : undefined,
                       currentMemberId: program.teaching_point_id ? assignment?.member?.id : undefined,

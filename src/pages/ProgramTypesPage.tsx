@@ -11,6 +11,7 @@ interface ProgramTypeDraft {
   partner_same_gender: boolean
   required_qualification: string
   partner_program_type_id: string
+  recency_pool: string
 }
 
 const EMPTY_DRAFT: ProgramTypeDraft = {
@@ -21,6 +22,7 @@ const EMPTY_DRAFT: ProgramTypeDraft = {
   partner_same_gender: false,
   required_qualification: '',
   partner_program_type_id: '',
+  recency_pool: '',
 }
 
 function draftFromType(pt: ProgramType): ProgramTypeDraft {
@@ -32,6 +34,7 @@ function draftFromType(pt: ProgramType): ProgramTypeDraft {
     partner_same_gender: pt.partner_same_gender ?? false,
     required_qualification: pt.required_qualification ?? '',
     partner_program_type_id: pt.partner_program_type_id ?? '',
+    recency_pool: pt.recency_pool ?? '',
   }
 }
 
@@ -44,6 +47,7 @@ function draftToPatch(d: ProgramTypeDraft) {
     partner_same_gender: d.partner_same_gender,
     required_qualification: d.required_qualification || null,
     partner_program_type_id: d.partner_program_type_id || null,
+    recency_pool: d.recency_pool.trim() || null,
   }
 }
 
@@ -189,6 +193,13 @@ export function ProgramTypesPage() {
               ))}
           </select>
         </td>
+        <td>
+          <input
+            placeholder="例: 実演"
+            value={d.recency_pool}
+            onChange={(e) => setD((x) => ({ ...x, recency_pool: e.target.value }))}
+          />
+        </td>
       </>
     )
   }
@@ -206,6 +217,7 @@ export function ProgramTypesPage() {
             <th>必要な特別承認</th>
             <th>ペア</th>
             <th>ペアのルール参照元</th>
+            <th>候補プール</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -234,6 +246,7 @@ export function ProgramTypesPage() {
                   {pt.needs_partner && pt.partner_same_gender ? '(同性)' : ''}
                 </td>
                 <td>{programTypes.find((p) => p.id === pt.partner_program_type_id)?.name ?? ''}</td>
+                <td>{pt.recency_pool ?? ''}</td>
                 <td className="row-actions">
                   <button type="button" onClick={() => startEdit(pt)}>
                     編集

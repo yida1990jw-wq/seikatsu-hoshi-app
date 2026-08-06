@@ -38,6 +38,12 @@ export interface ProgramType {
   partner_same_gender: boolean | null
   required_qualification: Qualification | null
   partner_program_type_id: string | null
+  /**
+   * 課題(教励課題)付きプログラムの候補者選定で、直近担当日をまとめて回すグループ名
+   * (例: 聖書朗読/実演/話)。同じ値を持つ種別同士で担当日をプールする。
+   * 空なら種別ごとに個別管理(他の種別とプールしない)。
+   */
+  recency_pool: string | null
 }
 
 export interface Program {
