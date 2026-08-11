@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabaseClient'
+import { useAppData } from '../context/AppDataContext'
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
@@ -19,49 +21,85 @@ const OTHER_REPORTS = [
 ]
 
 export function ReportsPage() {
+  const { settings, refetchAll } = useAppData()
   const [from, setFrom] = useState(todayStr())
   const [to, setTo] = useState(endOfNextMonthStr())
   const [scheduleMonth, setScheduleMonth] = useState(todayStr().slice(0, 7))
+  const [memo, setMemo] = useState(settings.reports_memo ?? '')
+  const [savingMemo, setSavingMemo] = useState(false)
+  const [memoError, setMemoError] = useState<string | null>(null)
+
+  async function handleSaveMemo() {
+    setSavingMemo(true)
+    setMemoError(null)
+    try {
+      const { error } = await supabase.from('settings').upsert({ key: 'reports_memo', value: memo })
+      if (error) throw error
+      await refetchAll()
+    } catch (e) {
+      setMemoError(e instanceof Error ? e.message : '保存に失敗しました')
+    } finally {
+      setSavingMemo(false)
+    }
+  }
 
   return (
     <div className="page">
       <h1>帳票印刷</h1>
-      <p className="reports-hint">
-        期間を指定して、各帳票を新しいタブで開きます。開いた画面の「印刷 / PDFに保存」からPDF化できます。
-      </p>
-      <div className="reports-range">
-        <label>
-          開始日
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label>
-          終了日
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-      </div>
+      <div className="reports-layout">
+        <div className="reports-main">
+          <p className="reports-hint">
+            期間を指定して、各帳票を新しいタブで開きます。開いた画面の「印刷 / PDFに保存」からPDF化できます。
+          </p>
+          <div className="reports-range">
+            <label>
+              開始日
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </label>
+            <label>
+              終了日
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            </label>
+          </div>
 
-      <ul className="reports-list">
-        <li className="reports-list-schedule">
-          <Link to={`/print/schedule/${from}/${to}/${scheduleMonth}`} target="_blank" rel="noopener noreferrer">
-            集会予定表
-          </Link>
-          <label className="reports-month-label">
-            表示する月
-            <input
-              type="month"
-              value={scheduleMonth}
-              onChange={(e) => setScheduleMonth(e.target.value)}
-            />
-          </label>
-        </li>
-        {OTHER_REPORTS.map((r) => (
-          <li key={r.key}>
-            <Link to={`/print/${r.key}/${from}/${to}`} target="_blank" rel="noopener noreferrer">
-              {r.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+          <ul className="reports-list">
+            <li className="reports-list-schedule">
+              <Link to={`/print/schedule/${from}/${to}/${scheduleMonth}`} target="_blank" rel="noopener noreferrer">
+                集会予定表
+              </Link>
+              <label className="reports-month-label">
+                表示する月
+                <input
+                  type="month"
+                  value={scheduleMonth}
+                  onChange={(e) => setScheduleMonth(e.target.value)}
+                />
+              </label>
+            </li>
+            {OTHER_REPORTS.map((r) => (
+              <li key={r.key}>
+                <Link to={`/print/${r.key}/${from}/${to}`} target="_blank" rel="noopener noreferrer">
+                  {r.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="reports-memo">
+          <h2>メモ</h2>
+          <textarea
+            className="reports-memo-textarea"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder="例: 8/20週分まで予定表・進行表を共有済み"
+          />
+          {memoError && <p className="error-text">{memoError}</p>}
+          <button type="button" onClick={handleSaveMemo} disabled={savingMemo}>
+            {savingMemo ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

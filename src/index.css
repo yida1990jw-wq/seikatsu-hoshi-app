@@ -634,6 +634,52 @@ input {
 
 /* ---- reports hub ---- */
 
+.reports-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.reports-main {
+  flex: 1;
+  min-width: 260px;
+}
+
+.reports-memo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+}
+
+.reports-memo h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.reports-memo-textarea {
+  min-height: 420px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  resize: vertical;
+}
+
+.reports-memo button {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}
+
 .reports-hint {
   color: var(--text);
   font-size: 14px;
