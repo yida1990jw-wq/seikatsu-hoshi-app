@@ -7,6 +7,19 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   meeting_start_time: '19:00',
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// Supabaseのクエリエラーは Error を継承していないため、instanceof では拾えないことがある
+function extractErrorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message
+  if (e && typeof e === 'object' && 'message' in e && typeof (e as { message: unknown }).message === 'string') {
+    return (e as { message: string }).message
+  }
+  return '不明なエラーが発生しました'
+}
+
 interface AppDataContextValue {
   members: Member[]
   venues: Venue[]
@@ -69,45 +82,56 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setHistoryRows(rows)
   }, [])
 
+  const loadAll = useCallback(async () => {
+    const [membersRes, venuesRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
+      supabase.from('members').select('*').order('last_name_kana', { ascending: true }),
+      supabase.from('venues').select('*').order('name', { ascending: true }),
+      supabase.from('program_types').select('*'),
+      supabase.from('songs').select('*').order('number', { ascending: true }),
+      supabase.from('teaching_points').select('*').order('order_no', { ascending: true }),
+      // settingsテーブルは後から追加されたため、未作成環境でも他のデータ取得を止めない
+      supabase.from('settings').select('*'),
+    ])
+
+    if (membersRes.error) throw membersRes.error
+    if (venuesRes.error) throw venuesRes.error
+    if (programTypesRes.error) throw programTypesRes.error
+    if (songsRes.error) throw songsRes.error
+    if (teachingPointsRes.error) throw teachingPointsRes.error
+
+    setMembers(membersRes.data ?? [])
+    setVenues(venuesRes.data ?? [])
+    setProgramTypes(programTypesRes.data ?? [])
+    setSongs(songsRes.data ?? [])
+    setTeachingPoints(teachingPointsRes.data ?? [])
+    if (!settingsRes.error) {
+      setSettings({
+        ...DEFAULT_SETTINGS,
+        ...Object.fromEntries((settingsRes.data ?? []).map((s) => [s.key, s.value])),
+      })
+    }
+
+    await fetchHistory()
+  }, [fetchHistory])
+
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [membersRes, venuesRes, programTypesRes, songsRes, teachingPointsRes, settingsRes] = await Promise.all([
-        supabase.from('members').select('*').order('last_name_kana', { ascending: true }),
-        supabase.from('venues').select('*').order('name', { ascending: true }),
-        supabase.from('program_types').select('*'),
-        supabase.from('songs').select('*').order('number', { ascending: true }),
-        supabase.from('teaching_points').select('*').order('order_no', { ascending: true }),
-        // settingsテーブルは後から追加されたため、未作成環境でも他のデータ取得を止めない
-        supabase.from('settings').select('*'),
-      ])
-
-      if (membersRes.error) throw membersRes.error
-      if (venuesRes.error) throw venuesRes.error
-      if (programTypesRes.error) throw programTypesRes.error
-      if (songsRes.error) throw songsRes.error
-      if (teachingPointsRes.error) throw teachingPointsRes.error
-
-      setMembers(membersRes.data ?? [])
-      setVenues(venuesRes.data ?? [])
-      setProgramTypes(programTypesRes.data ?? [])
-      setSongs(songsRes.data ?? [])
-      setTeachingPoints(teachingPointsRes.data ?? [])
-      if (!settingsRes.error) {
-        setSettings({
-          ...DEFAULT_SETTINGS,
-          ...Object.fromEntries((settingsRes.data ?? []).map((s) => [s.key, s.value])),
-        })
-      }
-
-      await fetchHistory()
+      await loadAll()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '不明なエラーが発生しました')
+      // ログイン直後など、認証状態がまだ完全に反映されていないタイミングでの一時的な
+      // 失敗を救済するため、少し待って1回だけ自動的に再試行してからエラー表示する
+      await sleep(800)
+      try {
+        await loadAll()
+      } catch (e2) {
+        setError(extractErrorMessage(e2))
+      }
     } finally {
       setLoading(false)
     }
-  }, [fetchHistory])
+  }, [loadAll])
 
   useEffect(() => {
     fetchAll()

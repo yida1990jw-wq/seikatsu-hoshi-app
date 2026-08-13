@@ -77,6 +77,7 @@ export function WeeklyProgramPage() {
     loading: appDataLoading,
     error: appDataError,
     refetchHistory,
+    refetchAll,
   } = useAppData()
 
   const [availableDates, setAvailableDates] = useState<string[]>([])
@@ -586,7 +587,16 @@ export function WeeklyProgramPage() {
   }
 
   if (appDataLoading) return <div className="center-message">データを読み込み中...</div>
-  if (appDataError) return <div className="center-message error-text">{appDataError}</div>
+  if (appDataError) {
+    return (
+      <div className="center-message error-text">
+        <p>{appDataError}</p>
+        <button type="button" style={{ marginTop: 12 }} onClick={() => refetchAll()}>
+          再読み込み
+        </button>
+      </div>
+    )
+  }
 
   const sortedPrograms = [...programs].sort((a, b) => (a.order_no ?? 0) - (b.order_no ?? 0))
 
