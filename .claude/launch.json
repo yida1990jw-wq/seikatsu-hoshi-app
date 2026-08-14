@@ -6,6 +6,33 @@
       "runtimeExecutable": "cmd.exe",
       "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npm run dev"],
       "port": 5173
+    },
+    {
+      "name": "hoshi-houkoku-app",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "set PATH=C:\\Program Files\\nodejs;%PATH% && npm --prefix ..\\奉仕報告アプリ run dev -- --port 5174"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "hoshi-houkoku-app-preview",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "set PATH=C:\\Program Files\\nodejs;%PATH% && npm --prefix ..\\奉仕報告アプリ run preview -- --port 5176"
+      ],
+      "port": 5176
+    },
+    {
+      "name": "hoshi-houkoku-app-verify",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "set PATH=C:\\Program Files\\nodejs;%PATH% && npm --prefix ..\\奉仕報告アプリ run dev -- --port 5175"
+      ],
+      "port": 5175
     }
   ]
 }
