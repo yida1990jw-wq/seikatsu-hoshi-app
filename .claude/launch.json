@@ -8,6 +8,12 @@
       "port": 5173
     },
     {
+      "name": "seikatsu-app-preview",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npm run preview -- --port 5177"],
+      "port": 5177
+    },
+    {
       "name": "hoshi-houkoku-app",
       "runtimeExecutable": "cmd.exe",
       "runtimeArgs": [
