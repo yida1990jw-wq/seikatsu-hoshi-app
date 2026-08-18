@@ -6,7 +6,9 @@ import {
   buildLastAssignedMap,
   buildLastTeachingAssignmentMapsByPool,
   buildPairingMap,
+  buildPrayerRecencyMap,
   getEligibleCandidates,
+  PRAYER_TYPE_NAME,
 } from '../lib/candidates'
 import { AssignmentCell } from '../components/AssignmentCell'
 import { AutocompleteSelect } from '../components/AutocompleteSelect'
@@ -194,6 +196,12 @@ export function WeeklyProgramPage() {
   )
   const pairingMap = useMemo(() => buildPairingMap(historyRows, referenceDate), [historyRows, referenceDate])
 
+  // 祈りは開会・閉会で同じ種別を使うため、候補一覧ではどちらだったのかが分かるようにする
+  const prayerRecencyMap = useMemo(
+    () => buildPrayerRecencyMap(historyRows, referenceDate),
+    [historyRows, referenceDate],
+  )
+
   const nearbyDates = useMemo(() => {
     if (!selectedDate) return { prev1: null, next1: null, prev2: null, next2: null }
     const idx = availableDates.indexOf(selectedDate)
@@ -267,10 +275,14 @@ export function WeeklyProgramPage() {
         const target =
           info.date === prev1 ? maps.prev1 : info.date === next1 ? maps.next1 : info.date === prev2 ? maps.prev2 : info.date === next2 ? maps.next2 : null
         if (!target) continue
-        for (const memberId of [row.member_id, row.partner_id]) {
+        // 同じプログラムでも、担当者として出たのかペアとして出たのかを見分けられるようにする
+        for (const [memberId, role] of [
+          [row.member_id, 'member'],
+          [row.partner_id, 'partner'],
+        ] as const) {
           if (!memberId) continue
           const labels = target.get(memberId) ?? []
-          labels.push(info.label)
+          labels.push(role === 'partner' ? `${info.label}(ペア)` : info.label)
           target.set(memberId, labels)
         }
       }
@@ -863,10 +875,13 @@ export function WeeklyProgramPage() {
                     // 候補プール(recency_pool)が設定された種別は、この種別に限らずプール全体での
                     // 「担当者としての」直近担当日を見る(特定の実演だけに偏らないようにするため。
                     // ペアとしての履歴は混在させない)。教励課題の有無は問わない。
+                    // 祈りは開会・閉会をまとめて回しつつ、前回がどちらだったかを表示する
                     broadRecencyMap:
-                      programType.recency_pool && memberPoolKey
-                        ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
-                        : undefined,
+                      programType.name === PRAYER_TYPE_NAME
+                        ? prayerRecencyMap
+                        : programType.recency_pool && memberPoolKey
+                          ? lastTeachingAssignmentAsMemberMapsByPool.get(memberPoolKey)
+                          : undefined,
                   })
                 : []
 

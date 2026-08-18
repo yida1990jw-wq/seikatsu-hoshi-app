@@ -572,6 +572,27 @@ input {
   text-align: left;
 }
 
+/* 開会の祈り / 閉会の祈りを一目で見分けるための色分け */
+.candidate-type-opening {
+  color: #1f7a5a;
+  font-weight: 600;
+}
+
+.candidate-type-closing {
+  color: #a8342b;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .candidate-type-opening {
+    color: #5fd3a6;
+  }
+
+  .candidate-type-closing {
+    color: #f2867c;
+  }
+}
+
 .candidate-clear {
   color: var(--danger);
 }

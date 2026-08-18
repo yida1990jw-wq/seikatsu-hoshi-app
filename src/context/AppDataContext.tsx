@@ -55,7 +55,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('assignments')
       .select(
-        'member_id, partner_id, programs(date, title, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
+        'member_id, partner_id, programs(date, title, section, program_type_id, teaching_point_id, program_types(name, partner_program_type_id))',
       )
 
     if (error) throw error
@@ -76,6 +76,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         has_teaching_point: !!program?.teaching_point_id,
         program_type_name: programType?.name ?? null,
         program_title: program?.title ?? null,
+        program_section: program?.section ?? null,
       }
     })
 

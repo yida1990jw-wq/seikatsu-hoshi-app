@@ -10,6 +10,13 @@ interface CandidateComboboxProps {
   allowClear?: boolean
 }
 
+/** 開会の祈りと閉会の祈りは一目で見分けられるよう色を変える */
+function typeNameClass(typeName: string): string {
+  if (typeName === '開会の祈り') return 'candidate-type-opening'
+  if (typeName === '閉会の祈り') return 'candidate-type-closing'
+  return ''
+}
+
 export function CandidateCombobox({
   candidates,
   referenceDate,
@@ -77,7 +84,19 @@ export function CandidateCombobox({
               </span>
               <span className="candidate-meta">
                 {c.isDuplicateToday && <span className="candidate-warning">⚠ 本日他の担当あり</span>}
-                {formatLastAssigned(c.lastAssignedDate, c.lastAssignedType, referenceDate)}
+                {(() => {
+                  const { period, typeName } = formatLastAssigned(
+                    c.lastAssignedDate,
+                    c.lastAssignedType,
+                    referenceDate,
+                  )
+                  if (!typeName) return period
+                  return (
+                    <>
+                      {period}・<span className={typeNameClass(typeName)}>{typeName}</span>
+                    </>
+                  )
+                })()}
               </span>
             </button>
           </li>

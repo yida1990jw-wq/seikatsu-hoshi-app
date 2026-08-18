@@ -13,6 +13,8 @@ export interface AssignmentHistoryRow {
   program_type_name: string | null
   /** そのプログラムのタイトル(表示用。討議など種別名だけでは中身が分からないプログラム向け) */
   program_title: string | null
+  /** そのプログラムの区分(開会・クリスチャンとして生活する等。祈りの開会/閉会の区別に使う) */
+  program_section: string | null
 }
 
 /** 日付文字列(YYYY-MM-DD)同士の差分日数(a - b)。正なら a の方が未来。 */
@@ -71,6 +73,47 @@ export type LastTeachingAssignmentMap = Map<string, LastTeachingAssignment>
 
 /** プールキー(recency_pool、無ければ種別id自身) -> LastTeachingAssignmentMap */
 export type LastTeachingAssignmentMapsByPool = Map<string, LastTeachingAssignmentMap>
+
+/** 種別「祈り」の名称 */
+export const PRAYER_TYPE_NAME = '祈り'
+
+/**
+ * 祈りは同じ種別のまま開会と閉会の両方で使うため、区分から呼び分けの名前を作る。
+ * 「閉会」区分は現在使っていないが、過去データにはあるので閉会扱いのままにする。
+ */
+export function prayerLabelForSection(section: string | null): string {
+  if (section === '開会') return '開会の祈り'
+  if (section === '閉会' || section === 'クリスチャンとして生活する') return '閉会の祈り'
+  return PRAYER_TYPE_NAME
+}
+
+/**
+ * 祈りの候補一覧用に、直近担当日と「開会の祈り/閉会の祈り」のラベルを集計する。
+ * 開会と閉会をまとめて1つの巡回として扱う(どちらかを最近担当していれば後回しになる)が、
+ * 表示ではどちらだったのかが分かるようにする。
+ */
+export function buildPrayerRecencyMap(
+  rows: AssignmentHistoryRow[],
+  referenceDate: string,
+): LastTeachingAssignmentMap {
+  const map: LastTeachingAssignmentMap = new Map()
+
+  for (const row of rows) {
+    if (!row.program_date || row.program_type_name !== PRAYER_TYPE_NAME) continue
+    const memberId = row.member_id
+    if (!memberId) continue
+
+    const existing = map.get(memberId)
+    if (
+      !existing ||
+      Math.abs(daysBetween(row.program_date, referenceDate)) < Math.abs(daysBetween(existing.date, referenceDate))
+    ) {
+      map.set(memberId, { date: row.program_date, typeName: prayerLabelForSection(row.program_section) })
+    }
+  }
+
+  return map
+}
 
 /**
  * 直近担当日を、種別ごとではなく「候補プール」単位で集計する。
@@ -275,14 +318,19 @@ export function memberDisplayName(member: Member): string {
 /**
  * referenceDate(通常は今表示している週の日付)を基準に、過去なら「前回」、
  * 未来(先の週まで既に入力済みの担当)なら「今後」とラベルを分けて表示する。
+ * 種別名は色分けして描画できるよう、日付部分と分けて返す。
  */
-export function formatLastAssigned(dateStr: string | null, typeName: string | null | undefined, referenceDate: string): string {
-  if (!dateStr) return '初担当'
+export function formatLastAssigned(
+  dateStr: string | null,
+  typeName: string | null | undefined,
+  referenceDate: string,
+): { period: string; typeName: string | null } {
+  if (!dateStr) return { period: '初担当', typeName: null }
   const diffDays = daysBetween(dateStr, referenceDate)
   const diffWeeks = Math.round(Math.abs(diffDays) / 7)
   const formatted = new Date(dateStr).toLocaleDateString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric' })
   const isFuture = diffDays > 0
   const label = isFuture ? '今後' : '前回'
   const period = diffWeeks === 0 ? formatted : `${formatted}(${diffWeeks}週間${isFuture ? '後' : '前'})`
-  return typeName ? `${label}: ${period}・${typeName}` : `${label}: ${period}`
+  return { period: `${label}: ${period}`, typeName: typeName ?? null }
 }
