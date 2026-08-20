@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
@@ -371,6 +371,18 @@ export function WeeklyProgramPage() {
   // 今表示しているのが「今週」(今日以降で一番近い週)かどうか。日付の色分けに使う
   const isCurrentWeek = !!selectedDate && selectedDate === currentWeekOf(availableDates)
 
+  // 標準ではカレンダーのアイコンを押したときしか開かないが、日付は直接入力せず
+  // カレンダーから選ぶ使い方なので、欄のどこを押しても開くようにする
+  function openDatePicker(e: MouseEvent<HTMLInputElement>) {
+    const el = e.currentTarget
+    if (typeof el.showPicker !== 'function') return
+    try {
+      el.showPicker()
+    } catch {
+      // 開けないブラウザでは標準どおりアイコンから開いてもらう
+    }
+  }
+
   const programTypesById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt])), [programTypes])
 
   const programTypeOptions = useMemo(
@@ -702,6 +714,7 @@ export function WeeklyProgramPage() {
           className={isCurrentWeek ? 'date-nav-current' : ''}
           value={selectedDate ?? ''}
           onChange={(e) => setSelectedDate(e.target.value)}
+          onClick={openDatePicker}
         />
         {/* 日付入力欄には曜日を差し込めないため、すぐ右に添える */}
         {selectedDate && (
