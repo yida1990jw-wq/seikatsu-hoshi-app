@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAppData } from '../context/AppDataContext'
+import { buildProgramCsv, downloadCsv } from '../lib/csvExport'
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
@@ -21,13 +22,28 @@ const OTHER_REPORTS = [
 ]
 
 export function ReportsPage() {
-  const { settings, refetchAll } = useAppData()
+  const { settings, teachingPoints, refetchAll } = useAppData()
   const [from, setFrom] = useState(todayStr())
   const [to, setTo] = useState(endOfNextMonthStr())
   const [scheduleMonth, setScheduleMonth] = useState(todayStr().slice(0, 7))
   const [memo, setMemo] = useState(settings.reports_memo ?? '')
   const [savingMemo, setSavingMemo] = useState(false)
   const [memoError, setMemoError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+
+  async function handleExportCsv() {
+    setExporting(true)
+    setExportError(null)
+    try {
+      const csv = await buildProgramCsv(from, to, teachingPoints)
+      downloadCsv(`生活と奉仕_${from}_${to}.csv`, csv)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : '書き出しに失敗しました')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   async function handleSaveMemo() {
     setSavingMemo(true)
@@ -49,7 +65,7 @@ export function ReportsPage() {
       <div className="reports-layout">
         <div className="reports-main">
           <p className="reports-hint">
-            期間を指定して、各帳票を新しいタブで開きます。開いた画面の「印刷 / PDFに保存」からPDF化できます。
+            期間を指定して、各帳票を開きます。開いた画面の「印刷 / PDFに保存」からPDF化でき、「← 戻る」でこの画面に戻れます。
           </p>
           <div className="reports-range">
             <label>
@@ -62,11 +78,13 @@ export function ReportsPage() {
             </label>
           </div>
 
+          {/*
+            ホーム画面に追加(PWA)して使うとき、新しいタブで開くとアプリがもう1つ立ち上がった
+            ように見えてしまう。同じ画面のまま遷移し、印刷画面の「← 戻る」で戻ってもらう
+          */}
           <ul className="reports-list">
             <li className="reports-list-schedule">
-              <Link to={`/print/schedule/${from}/${to}/${scheduleMonth}`} target="_blank" rel="noopener noreferrer">
-                集会予定表
-              </Link>
+              <Link to={`/print/schedule/${from}/${to}/${scheduleMonth}`}>集会予定表</Link>
               <label className="reports-month-label">
                 表示する月
                 <input
@@ -78,12 +96,17 @@ export function ReportsPage() {
             </li>
             {OTHER_REPORTS.map((r) => (
               <li key={r.key}>
-                <Link to={`/print/${r.key}/${from}/${to}`} target="_blank" rel="noopener noreferrer">
-                  {r.label}
-                </Link>
+                <Link to={`/print/${r.key}/${from}/${to}`}>{r.label}</Link>
               </li>
             ))}
           </ul>
+
+          <div className="reports-export">
+            <button type="button" onClick={handleExportCsv} disabled={exporting}>
+              {exporting ? '書き出し中...' : 'CSVで書き出す'}
+            </button>
+            {exportError && <p className="error-text">{exportError}</p>}
+          </div>
         </div>
 
         <div className="reports-memo">
