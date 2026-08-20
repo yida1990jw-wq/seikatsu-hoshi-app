@@ -52,14 +52,20 @@ const SECTION_PRESETS = [
   '閉会',
 ]
 
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
+/** 日付入力欄には曜日が出ないため、隣に添えるための曜日(例: 木) */
+function formatWeekday(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('ja-JP', { weekday: 'short' })
 }
 
 function formatShortDate(dateStr: string): string {
   const d = new Date(dateStr)
   return d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })
+}
+
+/** 今日以降で一番近い週。すべて過去なら最後の週を返す(初期表示と「今週」ボタンで共用) */
+function currentWeekOf(dates: string[]): string | null {
+  const today = todayStr()
+  return dates.find((d) => d >= today) ?? dates[dates.length - 1] ?? null
 }
 
 function todayStr(): string {
@@ -117,9 +123,7 @@ export function WeeklyProgramPage() {
         setSelectedDate(saved)
         return
       }
-      const today = todayStr()
-      const upcoming = dates.find((d) => d >= today)
-      setSelectedDate(upcoming ?? dates[dates.length - 1] ?? today)
+      setSelectedDate(currentWeekOf(dates) ?? todayStr())
     })
   }, [loadAvailableDates])
 
@@ -356,8 +360,16 @@ export function WeeklyProgramPage() {
     if (last) setSelectedDate(last)
   }
 
+  function goCurrentWeek() {
+    const current = currentWeekOf(availableDates)
+    if (current) setSelectedDate(current)
+  }
+
   const hasPrev = availableDates.some((d) => selectedDate && d < selectedDate)
   const hasNext = availableDates.some((d) => selectedDate && d > selectedDate)
+
+  // 今表示しているのが「今週」(今日以降で一番近い週)かどうか。日付の色分けに使う
+  const isCurrentWeek = !!selectedDate && selectedDate === currentWeekOf(availableDates)
 
   const programTypesById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt])), [programTypes])
 
@@ -687,12 +699,19 @@ export function WeeklyProgramPage() {
         </button>
         <input
           type="date"
+          className={isCurrentWeek ? 'date-nav-current' : ''}
           value={selectedDate ?? ''}
           onChange={(e) => setSelectedDate(e.target.value)}
         />
+        {/* 日付入力欄には曜日を差し込めないため、すぐ右に添える */}
         {selectedDate && (
-          <span className="date-nav-label">{formatDateLabel(selectedDate)}</span>
+          <span className={`date-nav-weekday ${isCurrentWeek ? 'date-nav-current' : ''}`}>
+            ({formatWeekday(selectedDate)})
+          </span>
         )}
+        <button type="button" onClick={goCurrentWeek} disabled={isCurrentWeek}>
+          今週
+        </button>
         <button type="button" onClick={goNext} disabled={!hasNext}>
           次週 →
         </button>

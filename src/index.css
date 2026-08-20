@@ -335,16 +335,32 @@ input {
 }
 
 .date-nav input[type='date'] {
-  padding: 6px 10px;
+  position: relative;
+  /* 左端に寄せたカレンダーアイコンの分だけ、左側を広めに空ける */
+  padding: 6px 10px 6px 32px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text-h);
 }
 
-.date-nav-label {
+/* 標準のカレンダーアイコンのまま、位置だけ右端から左端へ寄せる。
+   この指定に対応しないブラウザでは、これまでどおり右端に出る */
+.date-nav input[type='date']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  left: 8px;
+}
+
+.date-nav-weekday {
   font-size: 14px;
   color: var(--text);
+}
+
+/* 今表示しているのが「今週」のときは、日付と曜日を色で示す */
+.date-nav input[type='date'].date-nav-current,
+.date-nav .date-nav-weekday.date-nav-current {
+  color: #009d00;
+  font-weight: 600;
 }
 
 .manage-toggle {
