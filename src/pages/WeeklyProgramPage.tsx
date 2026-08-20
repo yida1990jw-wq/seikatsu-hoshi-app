@@ -346,6 +346,19 @@ export function WeeklyProgramPage() {
     if (next) setSelectedDate(next)
   }
 
+  function goFirst() {
+    const first = availableDates[0]
+    if (first) setSelectedDate(first)
+  }
+
+  function goLast() {
+    const last = availableDates[availableDates.length - 1]
+    if (last) setSelectedDate(last)
+  }
+
+  const hasPrev = availableDates.some((d) => selectedDate && d < selectedDate)
+  const hasNext = availableDates.some((d) => selectedDate && d > selectedDate)
+
   const programTypesById = useMemo(() => new Map(programTypes.map((pt) => [pt.id, pt])), [programTypes])
 
   const programTypeOptions = useMemo(
@@ -666,7 +679,10 @@ export function WeeklyProgramPage() {
       <h1>週ごとのプログラム</h1>
 
       <div className="date-nav">
-        <button type="button" onClick={goPrev} disabled={!availableDates.some((d) => selectedDate && d < selectedDate)}>
+        <button type="button" onClick={goFirst} disabled={!hasPrev}>
+          《 最初
+        </button>
+        <button type="button" onClick={goPrev} disabled={!hasPrev}>
           ← 前週
         </button>
         <input
@@ -677,8 +693,11 @@ export function WeeklyProgramPage() {
         {selectedDate && (
           <span className="date-nav-label">{formatDateLabel(selectedDate)}</span>
         )}
-        <button type="button" onClick={goNext} disabled={!availableDates.some((d) => selectedDate && d > selectedDate)}>
+        <button type="button" onClick={goNext} disabled={!hasNext}>
           次週 →
+        </button>
+        <button type="button" onClick={goLast} disabled={!hasNext}>
+          最後 》
         </button>
 
         {!manageMode && (openingProgram || closingProgram) && (
